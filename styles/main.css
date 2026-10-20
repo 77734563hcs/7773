@@ -1,0 +1,1620 @@
+/* ==========================================================================
+   城市周末旅行指南 —— 设计系统
+   方向：杂志编辑风 × 交通票据
+   字体：衬线标题承担温度，无衬线正文承担信息密度
+   ========================================================================== */
+
+/* 字体走本地：中文字体再走 Google 的话，国内访问 39 个 woff2 全部 ERR_CONNECTION_RESET，
+   首屏一直卡在无配图字重上。现在优先用系统自带的同族字体：
+   苹方 / 思源黑体 / 微软雅黑（黑体侧），宋体 / 思源宋体（衬线侧），
+   一个都没命中才回落到 Georgia / serif。 */
+
+/* ---------- Tokens ---------- */
+:root {
+  /* 纸张与墨——中性色统一偏向暖褐，避免死灰 */
+  --paper: oklch(97.8% 0.008 78);
+  --paper-2: oklch(95.2% 0.012 74);
+  --paper-3: oklch(92% 0.016 72);
+  --ink: oklch(21% 0.022 60);
+  --ink-2: oklch(38% 0.02 62);
+  --ink-3: oklch(54% 0.016 64);
+  --ink-4: oklch(68% 0.014 66);
+  --rule: oklch(85% 0.016 70);
+  --rule-strong: oklch(74% 0.02 68);
+
+  /* 品牌色：印章朱砂。用于强调、价格、CTA */
+  --seal: oklch(50% 0.155 28);
+  --seal-deep: oklch(38% 0.13 26);
+
+  /* 类型
+     顺序即降级链：思源（装了就用）→ 系统自带的中文衬线/黑体 → Georgia → serif。
+     不依赖任何网络字体，断网也不掉字。 */
+  --serif: "Source Han Serif SC", "Noto Serif SC", "Songti SC", "STSong",
+    "SimSun", "宋体", Georgia, serif;
+  --sans: "Source Han Sans SC", "Noto Sans SC", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", system-ui, sans-serif;
+  --latin: "Newsreader", "Iowan Old Style", Georgia, "Times New Roman", serif;
+
+  /* 空间节奏 */
+  --gap-1: 0.25rem;
+  --gap-2: 0.5rem;
+  --gap-3: 0.75rem;
+  --gap-4: 1rem;
+  --gap-5: 1.5rem;
+  --gap-6: 2rem;
+  --gap-7: 3rem;
+  --gap-8: clamp(3rem, 6vw, 5.5rem);
+  --gap-9: clamp(4.5rem, 10vw, 9rem);
+
+  --page: clamp(1.25rem, 5vw, 5rem);
+  --maxw: 1320px;
+
+  /* 缓动：指数曲线，不用回弹 */
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --radius: 3px;
+  --shadow-lift: 0 1px 2px oklch(25% 0.03 60 / 0.05),
+    0 18px 32px -18px oklch(25% 0.03 60 / 0.22);
+}
+
+/* ---------- Reset ---------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: clamp(0.95rem, 0.4vw + 0.86rem, 1.0625rem);
+  line-height: 1.65;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+
+/* 纸张颗粒——让纯色背景有材质感 */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.4;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.28'/%3E%3C/svg%3E");
+}
+
+body > * {
+  position: relative;
+  z-index: 1;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+::selection {
+  background: var(--seal);
+  color: var(--paper);
+}
+
+:focus-visible {
+  outline: 2px solid var(--seal);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* ---------- 排版基元 ---------- */
+.wrap {
+  width: 100%;
+  max-width: var(--maxw);
+  margin-inline: auto;
+  padding-inline: var(--page);
+}
+
+.eyebrow {
+  font-family: var(--sans);
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+}
+
+.eyebrow::before {
+  content: "";
+  width: 1.75rem;
+  height: 1px;
+  background: var(--rule-strong);
+}
+
+.display {
+  font-family: var(--serif);
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: -0.015em;
+  margin: 0;
+  text-wrap: balance;
+}
+
+.latin {
+  font-family: var(--latin);
+  font-style: italic;
+  font-weight: 300;
+  letter-spacing: 0.01em;
+}
+
+.lede {
+  font-size: clamp(1rem, 0.7vw + 0.85rem, 1.1875rem);
+  color: var(--ink-2);
+  line-height: 1.75;
+  max-width: 46ch;
+}
+
+/* 章节标题 */
+.section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--gap-5);
+  padding-bottom: var(--gap-4);
+  border-bottom: 1px solid var(--rule-strong);
+  margin-bottom: var(--gap-6);
+}
+
+.section-head h2 {
+  font-family: var(--serif);
+  font-size: clamp(1.5rem, 2.6vw, 2.5rem);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  margin: var(--gap-3) 0 0;
+}
+
+.section-head p {
+  margin: 0;
+  max-width: 34ch;
+  font-size: 0.9rem;
+  color: var(--ink-3);
+  line-height: 1.6;
+}
+
+/* 章节说明里带一个去处（如「在图上看看」），做成下划线小链接，
+   不能跟正文混成一片灰 */
+.head-link {
+  color: var(--seal);
+  text-decoration: underline;
+  text-underline-offset: 0.22em;
+  text-decoration-thickness: 1px;
+  text-decoration-color: color-mix(in oklab, var(--seal) 40%, transparent);
+  white-space: nowrap;
+  transition: text-decoration-color 0.25s var(--ease-out-quart);
+}
+
+.head-link::after {
+  content: " →";
+  text-decoration: none;
+}
+
+.head-link:hover {
+  text-decoration-color: var(--seal);
+}
+
+/* ==========================================================================
+   1. 页头
+   ========================================================================== */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  backdrop-filter: blur(14px) saturate(1.4);
+  background: color-mix(in oklab, var(--paper) 82%, transparent);
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.4s var(--ease-out-quart);
+}
+
+.site-header[data-stuck="true"] {
+  border-bottom-color: var(--rule);
+}
+
+.site-header .wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-5);
+  height: 4.25rem;
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 0.55rem;
+  font-family: var(--serif);
+  font-size: 1.1875rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.brand .seal {
+  display: inline-grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  background: var(--seal);
+  color: var(--paper);
+  border-radius: 2px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  transform: translateY(1px);
+}
+
+.brand .en {
+  font-family: var(--latin);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 0.8rem;
+  color: var(--ink-4);
+  letter-spacing: 0.04em;
+}
+
+.nav {
+  display: flex;
+  gap: var(--gap-5);
+  margin-left: auto;
+  font-size: 0.875rem;
+  color: var(--ink-2);
+}
+
+.nav a {
+  position: relative;
+  padding-block: 0.25rem;
+  transition: color 0.25s var(--ease-out-quart);
+}
+
+.nav a::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 1px;
+  background: var(--seal);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.45s var(--ease-out-expo);
+}
+
+.nav a:hover {
+  color: var(--seal);
+}
+
+.nav a:hover::after {
+  transform: scaleX(1);
+}
+
+.header-cta {
+  display: inline-flex;
+  align-items: center;
+  /* 页头是 flex 容器，不锁死就会被挤成每字一行 */
+  flex: none;
+  white-space: nowrap;
+  gap: 0.5rem;
+  padding: 0.55rem 1.05rem;
+  border: 1px solid var(--ink);
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  background: transparent;
+  transition: background 0.3s var(--ease-out-quart),
+    color 0.3s var(--ease-out-quart), border-color 0.3s var(--ease-out-quart);
+}
+
+.header-cta:hover {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+/* ==========================================================================
+   2. 首屏
+   ========================================================================== */
+.hero {
+  padding-top: clamp(3rem, 7vw, 6rem);
+  padding-bottom: var(--gap-8);
+}
+
+.hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  gap: clamp(2rem, 5vw, 5rem);
+  align-items: center;
+}
+
+/* 海报下方那排主题按钮是绝对定位的，给它留出位置，别蹭到下一段 */
+.hero-grid > .hero-art {
+  margin-bottom: clamp(2.6rem, 4vw, 3.4rem);
+}
+
+.hero h1 {
+  font-family: var(--serif);
+  font-size: clamp(2.6rem, 7.2vw, 5.5rem);
+  font-weight: 900;
+  line-height: 1.02;
+  letter-spacing: -0.03em;
+  margin: var(--gap-5) 0 0;
+}
+
+.hero h1 .line {
+  display: block;
+}
+
+/* 高亮下划——手绘感，不用荧光笔 */
+.hero h1 em {
+  font-style: normal;
+  position: relative;
+  white-space: nowrap;
+}
+
+.hero h1 em::after {
+  content: "";
+  position: absolute;
+  left: -0.06em;
+  right: -0.06em;
+  bottom: 0.06em;
+  height: 0.3em;
+  background: color-mix(in oklab, var(--seal) 26%, transparent);
+  z-index: -1;
+  transform: skewX(-6deg);
+}
+
+.hero .lede {
+  margin-top: var(--gap-5);
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gap-3);
+  margin-top: var(--gap-6);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.85rem 1.5rem;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: transform 0.35s var(--ease-out-expo),
+    box-shadow 0.35s var(--ease-out-expo), background 0.3s var(--ease-out-quart),
+    color 0.3s var(--ease-out-quart);
+}
+
+.btn-primary {
+  background: var(--seal);
+  color: oklch(98% 0.01 80);
+}
+
+.btn-primary:hover {
+  background: var(--seal-deep);
+  transform: translateY(-2px);
+  box-shadow: 0 14px 26px -14px oklch(38% 0.13 26 / 0.6);
+}
+
+.btn-ghost {
+  border: 1px solid var(--rule-strong);
+  color: var(--ink-2);
+}
+
+.btn-ghost:hover {
+  border-color: var(--ink);
+  color: var(--ink);
+  transform: translateY(-2px);
+}
+
+.btn svg {
+  width: 1rem;
+  height: 1rem;
+  transition: transform 0.35s var(--ease-out-expo);
+}
+
+.btn:hover svg {
+  transform: translateX(3px);
+}
+
+/* 首屏统计条 */
+.hero-stats {
+  display: flex;
+  gap: clamp(1.25rem, 3vw, 2.5rem);
+  margin-top: var(--gap-7);
+  padding-top: var(--gap-5);
+  border-top: 1px solid var(--rule);
+}
+
+.hero-stats div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.hero-stats dt,
+.hero-stats .k {
+  font-family: var(--latin);
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.hero-stats .v {
+  font-size: 0.75rem;
+  color: var(--ink-3);
+  letter-spacing: 0.06em;
+}
+
+/* ---------- 首屏右侧：三层错落海报 ---------- */
+.hero-art {
+  position: relative;
+  /* 三张卡是绝对定位的，容器高度得自己算：
+     中间那张卡上移 18%、下移 25%，外面再留一圈余量给阴影和按钮 */
+  --card-w: clamp(11rem, 17vw, 14.5rem);
+  --card-h: calc(var(--card-w) * 1.367);
+  min-height: calc(var(--card-h) * 1.4 + 3.2rem);
+  width: 100%;
+  margin-inline: auto;
+  display: grid;
+  place-items: center;
+}
+
+.hero-art::before {
+  content: "";
+  position: absolute;
+  inset: 6% 10% 10% 6%;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+}
+
+/* 三层海报放在同一个堆叠上下文里，z-index 才按预期压叠 */
+.poster-set {
+  position: absolute;
+  inset: 0;
+}
+
+.poster {
+  position: absolute;
+  display: block;
+  /* 用 clamp 锁宽度：三张卡叠起来的高度才受控，首屏放得下 */
+  width: clamp(11rem, 17vw, 14.5rem);
+  aspect-ratio: 3 / 4.1;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: var(--paper-3);
+  box-shadow: var(--shadow-lift);
+  overflow: hidden;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.7s var(--ease-out-expo),
+    box-shadow 0.5s var(--ease-out-expo);
+}
+
+.poster:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 5px;
+}
+
+/* 渐变层是兜底：图片加载失败或被移除时它还在，画面不会开天窗 */
+.poster-bg {
+  position: absolute;
+  inset: 0;
+  display: block;
+  transition: opacity 0.5s var(--ease-out-quart);
+}
+
+.poster-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  opacity: 0;
+  transition: opacity 0.55s var(--ease-out-quart);
+  /* 换图时先缩一点点再归位，避免硬切 */
+  transform: scale(1.02);
+  transition-property: opacity, transform;
+}
+
+.poster.is-loaded .poster-img {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.poster.is-loaded .poster-bg {
+  opacity: 0;
+}
+
+/* 换主题时整张卡轻微下沉再浮起，给一个"换过了"的反馈 */
+.poster.is-swapping {
+  transform: scale(0.985);
+}
+
+/* 三层海报的位置与倾斜 */
+.poster-1 {
+  left: 0;
+  top: 6%;
+  transform: rotate(-5.5deg);
+  z-index: 1;
+}
+
+.poster-1 .poster-bg {
+  background: repeating-linear-gradient(
+      -32deg,
+      oklch(94% 0.03 60 / 0.5) 0 2px,
+      transparent 2px 9px
+    ),
+    linear-gradient(165deg, oklch(58% 0.13 32), oklch(34% 0.09 30));
+}
+
+.poster-2 {
+  left: 21%;
+  top: 18%;
+  transform: rotate(2deg);
+  z-index: 3;
+  width: calc(clamp(11rem, 17vw, 14.5rem) * 1.06);
+}
+
+.poster-2 .poster-bg {
+  background: radial-gradient(
+      circle at 50% 118%,
+      oklch(96% 0.02 70) 0 38%,
+      transparent 39%
+    ),
+    linear-gradient(190deg, oklch(72% 0.09 200), oklch(46% 0.07 215));
+}
+
+.poster-3 {
+  right: 0;
+  top: 4%;
+  transform: rotate(6.5deg);
+  z-index: 2;
+}
+
+.poster-3 .poster-bg {
+  background: conic-gradient(
+      from 200deg at 62% 34%,
+      oklch(84% 0.07 130) 0 22%,
+      transparent 22%
+    ),
+    linear-gradient(200deg, oklch(66% 0.1 148), oklch(40% 0.08 152));
+}
+
+/* 换主题时由脚本写入 --focus，控制横向裁切的取景位置 */
+.poster-img {
+  object-position: var(--focus, 50%) 50%;
+}
+
+/* 照片上压一层极薄的暖色，让三张风格统一 */
+.poster::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    178deg,
+    oklch(22% 0.03 60 / 0.04) 0%,
+    oklch(22% 0.03 60 / 0) 40%,
+    oklch(18% 0.03 50 / 0.34) 100%
+  );
+}
+
+.poster-label {
+  position: absolute;
+  z-index: 2;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 0.7rem 0.8rem 0.65rem;
+  background: linear-gradient(transparent, oklch(20% 0.02 60 / 0.72));
+  color: oklch(97% 0.01 80);
+  font-family: var(--serif);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: 0.04em;
+  text-align: center;
+}
+
+/* 标签换字时淡出淡入 */
+.poster-label .txt {
+  display: inline-block;
+  transition: opacity 0.28s var(--ease-out-quart),
+    transform 0.28s var(--ease-out-quart);
+}
+
+.poster.is-swapping .poster-label .txt {
+  opacity: 0;
+  transform: translateY(4px);
+}
+
+/* 标签那一栏里的两行：上面是哪座城·拍的什么，下面是主题名 */
+.poster-city {
+  display: block;
+  height: 1.35em;
+  overflow: hidden;
+  margin-bottom: 0.16rem;
+  font-family: var(--sans);
+  font-size: 0.625rem;
+  font-weight: 400;
+  line-height: 1.35;
+  letter-spacing: 0.05em;
+  /* 海报最窄只有 210px，长说明宁可省略也不能折行 */
+  white-space: nowrap;
+  color: oklch(97% 0.01 80 / 0.72);
+  transition: opacity 0.28s var(--ease-out-quart);
+}
+
+.poster.is-swapping .poster-city {
+  opacity: 0;
+}
+
+.poster-stamp {
+  position: absolute;
+  z-index: 5;
+  /* 骑在第一张卡的左下角外沿：卡片左边界约在 0%，底边约在 72% */
+  left: 2%;
+  bottom: 22%;
+  width: 4.2rem;
+  height: 4.2rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  background: var(--seal);
+  color: oklch(98% 0.01 80);
+  font-family: var(--serif);
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: 0.02em;
+  box-shadow: 0 12px 24px -12px oklch(38% 0.13 26 / 0.7);
+  transform: rotate(-8deg);
+  pointer-events: none;
+}
+
+.hero-art:hover .poster-1 {
+  transform: rotate(-9deg) translate(-6px, -6px);
+}
+
+.hero-art:hover .poster-2 {
+  transform: rotate(0deg) translateY(-8px);
+}
+
+.hero-art:hover .poster-3 {
+  transform: rotate(10deg) translate(6px, -4px);
+}
+
+/* ---------- 主题切换按钮 ---------- */
+.poster-dots {
+  position: absolute;
+  z-index: 6;
+  left: 50%;
+  bottom: -2.35rem;
+  transform: translateX(-50%);
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.26rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  /* 比海报区宽一点：海报是斜的，两侧本来就有余量 */
+  width: calc(100% + 2.5rem);
+  padding-bottom: 0.2rem;
+  /* 一行排不下就留出滑动余量，靠 ScrollHint 提示 */
+  justify-content: flex-start;
+}
+
+.poster-dots::-webkit-scrollbar {
+  display: none;
+}
+
+/* 脚本没跑起来时这排按钮没有内容，先藏住 */
+.poster-set:not([data-ready="1"]) ~ .poster-dots,
+.poster-dots:empty {
+  display: none;
+}
+
+.poster-dot {
+  flex: none;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.22rem;
+  padding: 0.26rem 0.42rem 0.28rem;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: oklch(99% 0.005 80 / 0.78);
+  color: var(--ink-3);
+  font-family: var(--sans);
+  font-size: 0.6875rem;
+  line-height: 1;
+  letter-spacing: 0;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 0.3s var(--ease-out-quart),
+    border-color 0.3s var(--ease-out-quart),
+    background 0.3s var(--ease-out-quart);
+}
+
+.poster-dot i {
+  display: block;
+  width: 0.3rem;
+  height: 0.3rem;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.4;
+  transition: opacity 0.3s;
+}
+
+/* 按海报分组的细分隔：占满两行时太碍眼，直接收掉 */
+.poster-dot.is-group-start::before {
+  content: "";
+  display: block;
+  width: 1px;
+  height: 0.6rem;
+  margin-right: 0.12rem;
+  background: var(--rule-strong);
+}
+
+/* 宽度不够排成一行时，11 个按钮改横向滚动，绝不折成两行 */
+@media (min-width: 1025px) {
+  .poster-dots {
+    justify-content: center;
+  }
+}
+
+.poster-dot:hover {
+  color: var(--ink);
+  border-color: var(--rule-strong);
+  background: oklch(99% 0.005 80 / 0.95);
+}
+
+.poster-dot[aria-pressed="true"] {
+  color: oklch(99% 0.01 80);
+  border-color: var(--ink);
+  background: var(--ink);
+}
+
+.poster-dot[aria-pressed="true"] i {
+  opacity: 1;
+}
+
+.poster-dot:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+/* ==========================================================================
+   3. 三条出行半径
+   ========================================================================== */
+.reach {
+  padding-block: var(--gap-7);
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  background: var(--paper-2);
+}
+
+.reach-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 0;
+}
+
+.reach-item {
+  padding: var(--gap-5) var(--gap-5) var(--gap-5) 0;
+  border-right: 1px solid var(--rule);
+}
+
+.reach-item:last-child {
+  border-right: 0;
+}
+
+.reach-item:not(:first-child) {
+  padding-left: var(--gap-5);
+}
+
+.reach-item .idx {
+  font-family: var(--latin);
+  font-size: 0.85rem;
+  color: var(--seal);
+  letter-spacing: 0.1em;
+}
+
+.reach-item h3 {
+  font-family: var(--serif);
+  font-size: 1.0625rem;
+  font-weight: 600;
+  margin: 0.5rem 0 0.3rem;
+}
+
+.reach-item p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--ink-3);
+  line-height: 1.6;
+}
+
+/* ==========================================================================
+   4. 筛选栏
+   ========================================================================== */
+.explore {
+  padding-block: var(--gap-8) var(--gap-9);
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gap-2);
+  margin-bottom: var(--gap-6);
+  padding-bottom: var(--gap-5);
+  border-bottom: 1px solid var(--rule);
+}
+
+.chip {
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  color: var(--ink-2);
+  background: transparent;
+  transition: all 0.28s var(--ease-out-quart);
+  white-space: nowrap;
+}
+
+.chip:hover {
+  border-color: var(--ink-3);
+  color: var(--ink);
+}
+
+.chip[aria-pressed="true"] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+
+.chip .n {
+  font-family: var(--latin);
+  font-size: 0.7rem;
+  opacity: 0.55;
+  margin-left: 0.3em;
+}
+
+/* ---------- 搜索框 ---------- */
+/* 视觉隐藏但对读屏可见 */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.search {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--gap-3);
+  margin-bottom: var(--gap-5);
+}
+
+.search-field {
+  position: relative;
+  flex: 1 1 22rem;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  background: var(--paper);
+  border: 1px solid var(--rule-strong);
+  border-radius: 999px;
+  transition: border-color 0.3s var(--ease-out-quart),
+    box-shadow 0.3s var(--ease-out-quart), background 0.3s;
+}
+
+.search-field:focus-within {
+  border-color: var(--seal);
+  background: oklch(99.4% 0.006 80);
+  box-shadow: 0 0 0 3px oklch(50% 0.155 28 / 0.12);
+}
+
+.search-icon {
+  flex: none;
+  width: 1.05rem;
+  height: 1.05rem;
+  margin-left: 1rem;
+  color: var(--ink-3);
+  transition: color 0.3s;
+}
+
+.search-field:focus-within .search-icon {
+  color: var(--seal);
+}
+
+/* 去掉浏览器自带的外框与清除按钮，统一由自定义的 × 接管 */
+.search-field input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0.78rem 2.4rem 0.78rem 0.7rem;
+  border: 0;
+  background: transparent;
+  font-size: 0.9375rem;
+  color: var(--ink);
+}
+
+.search-field input::placeholder {
+  color: var(--ink-4);
+}
+
+.search-field input::-webkit-search-cancel-button,
+.search-field input::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.search-field input:focus {
+  outline: none;
+}
+
+.search-clear {
+  position: absolute;
+  right: 0.6rem;
+  top: 50%;
+  display: grid;
+  place-items: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 999px;
+  color: var(--ink-3);
+  transform: translateY(-50%);
+  transition: background 0.2s, color 0.2s;
+}
+
+.search-clear svg {
+  width: 0.8rem;
+  height: 0.8rem;
+}
+
+.search-clear:hover {
+  background: var(--paper-3);
+  color: var(--ink);
+}
+
+.search-clear[hidden] {
+  display: none;
+}
+
+.search-submit {
+  flex: none;
+  padding: 0.72rem 1.6rem;
+  font-size: 0.875rem;
+}
+
+.search-hint {
+  flex: 1 0 100%;
+  margin-left: 1rem;
+  font-size: 0.75rem;
+  color: var(--ink-4);
+}
+
+/* 搜索命中时高亮卡片里匹配到的词 */
+.card mark {
+  background: oklch(88% 0.11 85);
+  color: inherit;
+  padding: 0 0.08em;
+  border-radius: 1px;
+}
+
+/* 密度切换 */
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap-4);
+  margin-bottom: var(--gap-5);
+}
+
+.density {
+  display: inline-flex;
+  border: 1px solid var(--rule-strong);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.density button {
+  padding: 0.38rem 0.85rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+  transition: background 0.25s var(--ease-out-quart), color 0.25s;
+}
+
+.density button[aria-pressed="true"] {
+  background: var(--paper-3);
+  color: var(--ink);
+}
+
+.count {
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
+
+.count b {
+  font-family: var(--latin);
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+/* ==========================================================================
+   5. 目的地卡片网格
+   ========================================================================== */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(19rem, 1fr));
+  gap: clamp(1.25rem, 2.2vw, 2rem);
+}
+
+/* 宽松模式：第一张卡横跨两列做视觉锚点 */
+.grid[data-density="airy"] .card:first-child {
+  grid-column: span 2;
+}
+
+/* ---------- 卡片本体 ---------- */
+.card {
+  --a: var(--accent, #8c3b2e);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  overflow: hidden;
+  cursor: pointer;
+  text-align: left;
+  transition: transform 0.55s var(--ease-out-expo),
+    box-shadow 0.55s var(--ease-out-expo), border-color 0.4s var(--ease-out-quart);
+  contain: layout paint style;
+}
+
+.card:hover,
+.card:focus-visible {
+  transform: translateY(-5px);
+  border-color: color-mix(in oklab, var(--a) 45%, var(--rule));
+  box-shadow: var(--shadow-lift);
+}
+
+/* 封面 */
+.card-cover {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  background: oklch(88% 0.02 70);
+}
+
+.grid[data-density="airy"] .card:first-child .card-cover {
+  aspect-ratio: 21 / 9;
+}
+
+/* 封面：渐变打底（加载中/失败时可见）+ 真实照片覆盖层 */
+.card-cover-base {
+  position: absolute;
+  inset: 0;
+  display: block;
+  background: var(--cover, linear-gradient(160deg, var(--a), oklch(30% 0.04 60)));
+}
+
+/* 照片本身不参与过渡，靠外层包一层来做淡入 */
+.card-photo {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  opacity: 0;
+  transition: opacity 0.7s var(--ease-out-quart),
+    transform 0.9s var(--ease-out-expo);
+}
+
+.card-photo.is-loaded {
+  opacity: 1;
+}
+
+.card:hover .card-photo {
+  transform: scale(1.045);
+}
+
+/* 照片上的压暗层：保证图片再亮，底部 transit 文字和左上序号也读得清 */
+.card-cover::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+      to top,
+      oklch(15% 0.02 60 / 0.62) 0,
+      oklch(15% 0.02 60 / 0.28) 22%,
+      transparent 48%
+    ),
+    radial-gradient(
+      120% 90% at 0 0,
+      oklch(15% 0.02 60 / 0.22),
+      transparent 42%
+    );
+}
+
+/* 序号与交通标签压在最上层（本身已是 absolute，只需确保层级） */
+
+/* 封面上的细描边，让照片与卡片边界更清楚 */
+.card-cover::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 1px oklch(20% 0.02 60 / 0.12);
+}
+
+/* 序号印章 */
+.card-index {
+  position: absolute;
+  top: 0.7rem;
+  left: 0.7rem;
+  z-index: 2;
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.85rem;
+  height: 1.85rem;
+  padding-inline: 0.4rem;
+  background: oklch(99% 0 0 / 0.92);
+  color: var(--ink);
+  border-radius: 2px;
+  font-family: var(--latin);
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
+}
+
+/* 距离/方式标签 */
+.card-transit {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  padding: 1.1rem 0.85rem 0.6rem;
+  background: linear-gradient(transparent, oklch(18% 0.02 60 / 0.75));
+  color: oklch(97% 0.01 80);
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.card-transit svg {
+  width: 0.85rem;
+  height: 0.85rem;
+  flex: none;
+  opacity: 0.8;
+}
+
+/* 正文 */
+.card-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: 1.05rem 1.15rem 1.15rem;
+}
+
+.card-title-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--gap-3);
+}
+
+.card-city {
+  font-family: var(--serif);
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.card-region {
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  color: var(--ink-4);
+  flex: none;
+}
+
+.card-tagline {
+  font-family: var(--serif);
+  font-size: 0.9375rem;
+  line-height: 1.65;
+  color: var(--ink-2);
+  margin: 0.5rem 0 0;
+}
+
+/* 元信息行：虚线票据分隔 */
+.card-meta {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin-top: auto;
+  padding-top: 0.9rem;
+  font-size: 0.75rem;
+  color: var(--ink-3);
+}
+
+.card-meta::before {
+  content: "";
+  position: absolute;
+  left: 1.15rem;
+  right: 1.15rem;
+  height: 1px;
+  margin-top: -0.9rem;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--rule) 0 5px,
+    transparent 5px 10px
+  );
+}
+
+.card-meta .dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--ink-4);
+  flex: none;
+}
+
+.card-price {
+  margin-left: auto;
+  display: flex;
+  align-items: baseline;
+  gap: 0.15rem;
+  font-family: var(--latin);
+  color: var(--ink);
+}
+
+.card-price .cur {
+  font-size: 0.75rem;
+  color: var(--ink-3);
+}
+
+.card-price .num {
+  font-size: 1.2rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.card-price .unit {
+  font-family: var(--sans);
+  font-size: 0.65rem;
+  color: var(--ink-4);
+  margin-left: 0.15rem;
+}
+
+/* 悬停时卡片左侧浮出的品牌色条 */
+.card::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--a);
+  transform: scaleY(0);
+  transform-origin: top;
+  transition: transform 0.6s var(--ease-out-expo);
+}
+
+.card:hover::after,
+.card:focus-visible::after {
+  transform: scaleY(1);
+}
+
+/* 标签药丸（卡片内） */
+.card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.65rem;
+}
+
+.tag {
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+  color: color-mix(in oklab, var(--a) 82%, var(--ink));
+  background: color-mix(in oklab, var(--a) 9%, var(--paper));
+  border: 1px solid color-mix(in oklab, var(--a) 22%, transparent);
+  padding: 0.15rem 0.5rem;
+  border-radius: 2px;
+}
+
+/* ---------- 紧凑模式 ---------- */
+.grid[data-density="tight"] {
+  grid-template-columns: repeat(auto-fill, minmax(15.5rem, 1fr));
+}
+
+.grid[data-density="tight"] .card-cover {
+  aspect-ratio: 3 / 2;
+}
+
+.grid[data-density="tight"] .card-city {
+  font-size: 1.2rem;
+}
+
+.grid[data-density="tight"] .card-tagline {
+  font-size: 0.875rem;
+}
+
+/* ---------- 空状态 ---------- */
+.empty {
+  grid-column: 1 / -1;
+  padding: var(--gap-8) var(--gap-5);
+  text-align: center;
+  border: 1px dashed var(--rule-strong);
+  border-radius: var(--radius);
+}
+
+.empty h3 {
+  font-family: var(--serif);
+  font-size: 1.25rem;
+  margin: 0 0 0.4rem;
+}
+
+.empty p {
+  margin: 0 auto var(--gap-4);
+  color: var(--ink-3);
+  font-size: 0.9rem;
+  max-width: 32ch;
+}
+
+/* ==========================================================================
+   6. 页脚
+   ========================================================================== */
+.site-footer {
+  border-top: 1px solid var(--rule);
+  background: var(--paper-2);
+  padding-block: var(--gap-7) var(--gap-5);
+}
+
+.footer-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) repeat(2, minmax(0, 1fr));
+  gap: var(--gap-6);
+}
+
+.site-footer h4 {
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+  margin: 0 0 var(--gap-3);
+  font-weight: 500;
+}
+
+.site-footer ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  font-size: 0.875rem;
+  color: var(--ink-2);
+}
+
+.site-footer li a:hover {
+  color: var(--seal);
+}
+
+.footer-note {
+  margin-top: var(--gap-6);
+  padding-top: var(--gap-4);
+  border-top: 1px solid var(--rule);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--gap-3);
+  font-size: 0.75rem;
+  color: var(--ink-4);
+}
+
+/* ==========================================================================
+   7. 入场动画
+   ========================================================================== */
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(18px);
+  animation: reveal 0.85s var(--ease-out-expo) forwards;
+  animation-delay: var(--d, 0ms);
+}
+
+@keyframes reveal {
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  [data-reveal] {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ==========================================================================
+   8. 响应式
+   ========================================================================== */
+@media (max-width: 1024px) {
+  .hero-grid {
+    grid-template-columns: 1fr;
+    gap: var(--gap-7);
+  }
+
+  .hero-art {
+    max-width: 26rem;
+    margin-inline: auto;
+    width: 100%;
+  }
+
+  .grid[data-density="airy"] .card:first-child {
+    grid-column: span 1;
+  }
+
+  .grid[data-density="airy"] .card:first-child .card-cover {
+    aspect-ratio: 16 / 10;
+  }
+}
+
+@media (max-width: 720px) {
+  .nav {
+    display: none;
+  }
+
+  .header-cta span {
+    display: none;
+  }
+
+  .header-cta {
+    padding: 0.6rem;
+    margin-left: auto;
+    /* 只剩一圈图标，别再被 flex 拉宽 */
+    flex: 0 0 auto;
+  }
+
+  /* 窄屏没地方排 11 个按钮，收成一个横向可滑的条 */
+  .poster-dots {
+    width: 100%;
+    max-width: 100%;
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 0.35rem;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .poster-dots::-webkit-scrollbar {
+    display: none;
+  }
+
+  .poster-dot {
+    padding: 0.3rem 0.55rem 0.32rem;
+  }
+
+  .reach-item {
+    padding: var(--gap-4) 0;
+    border-right: 0;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .reach-item:not(:first-child) {
+    padding-left: 0;
+  }
+
+  .reach-item:last-child {
+    border-bottom: 0;
+  }
+
+  .hero-stats {
+    flex-wrap: wrap;
+    gap: var(--gap-5) var(--gap-6);
+  }
+
+  .footer-grid {
+    grid-template-columns: 1fr;
+    gap: var(--gap-5);
+  }
+
+  .grid,
+  .grid[data-density="tight"] {
+    grid-template-columns: 1fr;
+  }
+
+  .card-meta::before {
+    left: 1.15rem;
+    right: 1.15rem;
+  }
+
+  /* 移动端：输入框占满一行，搜索按钮撑满，提示语收到容器内 */
+  .search {
+    gap: 0.6rem;
+  }
+
+  .search-field {
+    flex: 1 1 100%;
+  }
+
+  .search-submit {
+    flex: 1 1 100%;
+    justify-content: center;
+    padding-block: 0.7rem;
+  }
+
+  .search-hint {
+    margin-left: 0.9rem;
+  }
+}

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>目的地 · 周末去哪</title>
+<meta name="description" content="48 小时周末方案：预算、天数、必去清单、吃什么，一页看完。">
+<link rel="stylesheet" href="styles/main.css">
+<link rel="stylesheet" href="styles/destination.css">
+</head>
+<body class="is-detail">
+
+<header class="site-header" id="siteHeader">
+  <div class="wrap">
+    <a class="brand" href="index.html">
+      <span class="seal">周</span>
+      <span>周末去哪</span>
+      <span class="en">Weekend Atlas</span>
+    </a>
+    <nav class="nav">
+      <a href="index.html#explore">目的地</a>
+      <a href="map.html">地图</a>
+      <a href="roulette.html">转盘</a>
+      <a href="index.html#reach">出行半径</a>
+      <a href="index.html#how">怎么用</a>
+    </nav>
+    <a class="header-cta" href="index.html#explore">
+      <span>回到全部</span>
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+        <path d="M14 8H3M7 4L3 8l4 4" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </a>
+  </div>
+</header>
+
+<main id="main">
+  <!-- 加载中骨架 -->
+  <div class="detail-loading wrap" id="loading">
+    <p>正在取这一座城市…</p>
+  </div>
+
+  <!-- 未找到 -->
+  <section class="notfound wrap" id="notfound" hidden>
+    <span class="eyebrow">404</span>
+    <h1>没有这座城</h1>
+    <p>可能是链接拼错了，或者这座城市还没收进来。</p>
+    <a class="btn btn-primary" href="index.html#explore">
+      看看全部目的地
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+        <path d="M2 8h11M9 4l4 4-4 4" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </a>
+  </section>
+
+  <!-- 正文（由 JS 填充） -->
+  <div id="detail" hidden></div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-note">
+      <span>预算为估算口径，实际以当地淡旺季价格为准。</span>
+      <span>Weekend Atlas ✦ 目的地详情</span>
+    </div>
+  </div>
+</footer>
+
+<script src="data/destinations.js"></script>
+<script src="data/details.js"></script>
+<script src="scripts/destination.js"></script>
+</body>
+</html>

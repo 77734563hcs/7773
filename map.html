@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>目的地分布 · 周末去哪</title>
+<meta name="description" content="周末目的地在地图上的分布：从 2 小时可达的古城，到需要一趟远行的边疆。点地图上的标记或右侧清单，直达对应城市。">
+<link rel="stylesheet" href="styles/main.css">
+<link rel="stylesheet" href="styles/map.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23a8331f'/%3E%3Ctext x='16' y='23' font-family='serif' font-size='19' fill='%23fbf7f0' text-anchor='middle'%3E周%3C/text%3E%3C/svg%3E">
+</head>
+<body class="is-map">
+
+<header class="site-header" id="siteHeader">
+  <div class="wrap">
+    <a class="brand" href="index.html">
+      <span class="seal">周</span>
+      <span>周末去哪</span>
+      <span class="en">Weekend Atlas</span>
+    </a>
+    <nav class="nav">
+      <a href="index.html#explore">目的地</a>
+      <a href="map.html" aria-current="page">地图</a>
+      <a href="roulette.html">转盘</a>
+      <a href="index.html#reach">出行半径</a>
+    </nav>
+    <a class="header-cta" href="index.html#explore">
+      <span>回到全部</span>
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+        <path d="M14 8H3M7 4L3 8l4 4" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </a>
+  </div>
+</header>
+
+<main class="map-page">
+
+  <!-- 窄屏时缩成一行说明，给地图腾高度 -->
+  <div class="map-intro wrap">
+    <span class="eyebrow">目的地分布</span>
+    <h1><span id="introCount">这些</span> 个周末，落在这一张图上</h1>
+    <p class="map-intro-note">
+      点地图上的标记或右侧清单，直接进对应城市。
+      <span class="map-intro-hint">地图可拖动、可缩放</span>
+    </p>
+  </div>
+
+  <div class="map-stage wrap">
+
+    <!-- ========== 左：地图 ========== -->
+    <section class="map-panel" id="mapPanel" aria-label="目的地地图">
+      <div class="map-canvas" id="mapCanvas">
+
+        <svg class="map-svg" id="mapSvg" viewBox="0 0 900 680"
+             role="img" aria-labelledby="mapTitle mapDesc">
+          <title id="mapTitle">中国地图上的周末目的地</title>
+          <desc id="mapDesc">各省份轮廓与目的地标记，标记可用键盘 Tab 逐个访问</desc>
+
+          <!-- 海面纹理 -->
+          <defs>
+            <pattern id="seaHatch" width="7" height="7" patternUnits="userSpaceOnUse"
+                     patternTransform="rotate(45)">
+              <line x1="0" y1="0" x2="0" y2="7" stroke="currentColor" stroke-width="1"
+                    opacity="0.5"/>
+            </pattern>
+            <filter id="markerShadow" x="-120%" y="-120%" width="340%" height="340%">
+              <feDropShadow dx="0" dy="2" stdDeviation="2.2"
+                            flood-color="oklch(25% 0.03 60)" flood-opacity="0.28"/>
+            </filter>
+          </defs>
+
+          <!-- 海面底色铺满整个视窗。用 100% 而不是写死 900×680：
+               窄屏会把 viewBox 换成 675×900，写死的矩形会短一截 -->
+          <rect class="map-sea" x="0" y="0" width="100%" height="100%"/>
+          <rect class="map-seahat" x="0" y="0" width="100%" height="100%"/>
+
+          <!-- 省界 -->
+          <g class="map-land" id="mapLand"></g>
+
+          <!-- 目的地标记 -->
+          <g class="map-marks" id="mapMarks"></g>
+        </svg>
+
+        <!-- 十段线 + 南海诸岛小窗（中国地图必须完整表达南海） -->
+        <figure class="map-inset" aria-label="南海诸岛">
+          <svg id="mapInset" viewBox="0 0 132 176" role="img" aria-label="南海诸岛及十段线">
+            <g id="insetLand"></g>
+          </svg>
+          <figcaption>南海诸岛</figcaption>
+        </figure>
+
+        <!-- 缩放控件 -->
+        <div class="map-zoom" role="group" aria-label="地图缩放">
+          <button type="button" data-zoom="in" aria-label="放大">+</button>
+          <button type="button" data-zoom="out" aria-label="缩小">−</button>
+          <button type="button" data-zoom="reset" aria-label="复位">⟲</button>
+        </div>
+
+        <!-- 图例 -->
+        <div class="map-legend" aria-hidden="true">
+          <span class="lg-item"><i class="lg-dot"></i>目的地</span>
+          <span class="lg-item"><i class="lg-dot is-active"></i>已选中</span>
+        </div>
+
+        <!-- 悬停小卡 -->
+        <div class="map-tip" id="mapTip" hidden></div>
+
+        <p class="map-foot">
+          底图：DataV.GeoAtlas 省级行政区划 · 用于示意，不作精确测绘依据
+        </p>
+      </div>
+    </section>
+
+    <!-- ========== 右：清单 ========== -->
+    <aside class="map-list" id="mapList" aria-label="目的地清单">
+
+      <div class="list-head">
+        <button class="list-grip" type="button" id="listGrip" aria-expanded="true"
+                aria-controls="listBody" aria-label="展开或收起清单">
+          <span class="grip-bar" aria-hidden="true"></span>
+          <span class="list-title">目的地清单</span>
+          <span class="list-count" id="listCount">—</span>
+        </button>
+
+        <div class="list-tools" id="listBody">
+          <form class="list-search" id="listSearchForm" role="search" autocomplete="off">
+            <label class="list-search-field">
+              <span class="sr-only">搜索目的地</span>
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+                <circle cx="8.6" cy="8.6" r="5.4"/>
+                <path d="M12.6 12.6 17 17" stroke-linecap="round"/>
+              </svg>
+              <input type="search" id="listSearch" name="q" placeholder="搜城市或主题">
+              <button class="list-clear" type="button" id="listClear" aria-label="清除搜索" hidden>
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                  <path d="M4 4l8 8M12 4l-8 8" stroke-linecap="round"/>
+                </svg>
+              </button>
+            </label>
+          </form>
+
+          <div class="list-filters" id="listFilters" role="group" aria-label="按主题筛选"></div>
+        </div>
+      </div>
+
+      <div class="list-scroll" id="listScroll">
+        <div id="listGroups"></div>
+        <p class="list-empty" id="listEmpty" hidden>
+          没有匹配的目的地。换个词，或者
+          <button type="button" class="link-btn" id="listReset">看全部</button>。
+        </p>
+      </div>
+
+      <p class="list-foot">
+        预算为人均口径，含住宿、吃饭与门票，不含大交通。
+      </p>
+    </aside>
+
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-note">
+      <span>地图仅用于展示目的地相对位置与出行半径。</span>
+      <span>Weekend Atlas ✦ 目的地分布</span>
+    </div>
+  </div>
+</footer>
+
+<script src="data/destinations.js"></script>
+<script src="data/geo.js"></script>
+<script src="scripts/map-proj.js"></script>
+<script src="scripts/map.js"></script>
+</body>
+</html>

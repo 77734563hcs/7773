@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>周末去哪 · 城市周末旅行指南</title>
+<meta name="description" content="48 小时能去哪？一份按出行半径分好类的城市周末方案：2 小时可达、半天车程、一趟远行。预算、天数、必去清单一次说清。">
+<link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+
+<header class="site-header" id="siteHeader">
+  <div class="wrap">
+    <a class="brand" href="index.html">
+      <span class="seal">周</span>
+      <span>周末去哪</span>
+      <span class="en">Weekend Atlas</span>
+    </a>
+    <nav class="nav">
+      <a href="#explore">目的地</a>
+      <a href="map.html">地图</a>
+      <a href="roulette.html">转盘</a>
+      <a href="#reach">出行半径</a>
+      <a href="#how">怎么用</a>
+    </nav>
+    <button class="header-cta" type="button" data-scroll="#explore">
+      <span>随便挑一个</span>
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+        <path d="M2 8h11M9 4l4 4-4 4" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+  </div>
+</header>
+
+<main>
+
+  <!-- ================= 首屏 ================= -->
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <span class="eyebrow" data-reveal>周五下班后的一小时决定</span>
+        <h1 data-reveal style="--d:60ms">
+          <span class="line">48 小时，</span>
+          <span class="line">够去一个<em>陌生的城市</em>。</span>
+        </h1>
+        <p class="lede" data-reveal style="--d:140ms">
+          不用调休，不用做攻略做三天。我们把每个目的地的车程、预算、天数、
+          必去清单和吃什么压成一张卡——挑一张，周五晚上订票就行。
+        </p>
+        <div class="hero-actions" data-reveal style="--d:220ms">
+          <a class="btn btn-primary" href="#explore">
+            挑一个目的地
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+              <path d="M2 8h11M9 4l4 4-4 4" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </a>
+          <a class="btn btn-ghost" href="#reach">先看我能走多远</a>
+        </div>
+        <dl class="hero-stats" data-reveal style="--d:300ms">
+          <div><dt id="statCities">—</dt><span class="v">座城市</span></div>
+          <div><dt>2</dt><span class="v">天平均天数</span></div>
+          <div><dt>¥540</dt><span class="v">最低人均预算</span></div>
+        </dl>
+      </div>
+
+      <div class="hero-art" data-reveal style="--d:180ms" id="heroArt">
+        <!-- 三张海报由 scripts/posters.js 填充；这里保留兜底结构，脚本没跑也能看 -->
+        <div class="poster-set" id="posterSet" data-ready="0">
+          <button class="poster poster-1" type="button" data-slot="1" aria-label="换一张：古城">
+            <i class="poster-bg"></i>
+            <img class="poster-img" alt="" decoding="async">
+            <span class="poster-label">古城</span>
+          </button>
+          <button class="poster poster-2" type="button" data-slot="2" aria-label="换一张：海边">
+            <i class="poster-bg"></i>
+            <img class="poster-img" alt="" decoding="async">
+            <span class="poster-label">海边</span>
+          </button>
+          <button class="poster poster-3" type="button" data-slot="3" aria-label="换一张：山野">
+            <i class="poster-bg"></i>
+            <img class="poster-img" alt="" decoding="async">
+            <span class="poster-label">山野</span>
+          </button>
+        </div>
+
+        <div class="poster-stamp" aria-hidden="true">周末<br>出发<br>✦</div>
+
+        <div class="poster-dots" id="posterDots" role="group" aria-label="切换首屏主题图片"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 出行半径 ================= -->
+  <section class="reach" id="reach">
+    <div class="wrap">
+      <div class="reach-grid">
+        <div class="reach-item" data-reveal>
+          <span class="idx">01</span>
+          <h3>2 小时内可达</h3>
+          <p>说走就走。周六早上出门，中午就能在别人的城市吃第一顿饭。</p>
+        </div>
+        <div class="reach-item" data-reveal style="--d:70ms">
+          <span class="idx">02</span>
+          <h3>半天车程</h3>
+          <p>需要早起两小时，但换来的是一个完全不同的气候和口音。</p>
+        </div>
+        <div class="reach-item" data-reveal style="--d:140ms">
+          <span class="idx">03</span>
+          <h3>一趟远行</h3>
+          <p>机票加一天假，把 48 小时拉长到 72。适合攒了很久的那一个。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 目的地卡片 ================= -->
+  <section class="explore" id="explore">
+    <div class="wrap">
+      <div class="section-head">
+        <div>
+          <span class="eyebrow">目的地</span>
+          <h2>挑一张卡，然后出发</h2>
+        </div>
+        <p>每张卡上的预算是人均口径，含住宿、吃饭和门票，不含大交通。
+          <a class="head-link" href="map.html">在图上看看</a></p>
+      </div>
+
+      <form class="search" id="searchForm" role="search" autocomplete="off">
+        <label class="search-field">
+          <span class="sr-only">搜索目的地</span>
+          <svg class="search-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+            <circle cx="8.6" cy="8.6" r="5.4"/>
+            <path d="M12.6 12.6 17 17" stroke-linecap="round"/>
+          </svg>
+          <input
+            type="search"
+            id="searchInput"
+            name="q"
+            placeholder="搜城市，或者搜「园林」「海边」"
+            aria-describedby="searchHint"
+            enterkeyhint="search">
+          <button class="search-clear" type="button" id="searchClear" aria-label="清除搜索" hidden>
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+              <path d="M4 4l8 8M12 4l-8 8" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </label>
+        <button class="btn btn-primary search-submit" type="submit">搜索</button>
+        <p class="search-hint" id="searchHint">支持城市名、省份、地标与主题词</p>
+      </form>
+
+      <div class="filter-bar">
+        <div class="filters" id="filters" role="group" aria-label="按主题筛选"></div>
+        <div class="density" role="group" aria-label="卡片密度">
+          <button type="button" data-density="airy" aria-pressed="true">宽松</button>
+          <button type="button" data-density="tight" aria-pressed="false">紧凑</button>
+        </div>
+      </div>
+
+      <p class="count" id="count" aria-live="polite"></p>
+
+      <div class="grid" id="grid" data-density="airy"></div>
+    </div>
+  </section>
+
+  <!-- ================= 怎么用 ================= -->
+  <section class="explore" id="how" style="padding-top:0">
+    <div class="wrap">
+      <div class="section-head">
+        <div>
+          <span class="eyebrow">怎么用</span>
+          <h2>三步，不超过十分钟</h2>
+        </div>
+      </div>
+      <div class="reach-grid">
+        <div class="reach-item" data-reveal>
+          <span class="idx">01</span>
+          <h3>先筛车程，再筛心情</h3>
+          <p>决定了能走多远，剩下的就是看这周想去古城还是想去海边。</p>
+        </div>
+        <div class="reach-item" data-reveal style="--d:70ms">
+          <span class="idx">02</span>
+          <h3>看预算够不够</h3>
+          <p>卡片右下角是人均总花费。超预算的直接跳过，别为难自己。</p>
+        </div>
+        <div class="reach-item" data-reveal style="--d:140ms">
+          <span class="idx">03</span>
+          <h3>订票，把行程交给清单</h3>
+          <p>必去两项 + 吃什么一项，就是这次周末的全部作业。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div>
+        <a class="brand" href="index.html" style="margin-bottom:0.75rem">
+          <span class="seal">周</span>
+          <span>周末去哪</span>
+        </a>
+        <p style="margin:0;font-size:0.875rem;color:var(--ink-3);max-width:34ch;line-height:1.7">
+          一份给通勤者准备的城市周末指南。以 48 小时为基本单位，衡量每一趟出行的性价比。
+        </p>
+      </div>
+      <div>
+        <h4>按主题</h4>
+        <ul>
+          <li><a href="#explore" data-jump="古城">古城与老城</a></li>
+          <li><a href="#explore" data-jump="海边">海边与岛屿</a></li>
+          <li><a href="#explore" data-jump="山水">山水与徒步</a></li>
+          <li><a href="#explore" data-jump="美食">美食与夜宵</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>关于</h4>
+        <ul>
+          <li><a href="#how">使用说明</a></li>
+          <li><a href="#reach">出行半径</a></li>
+          <li><span style="color:var(--ink-4)">数据更新 · 2026 年 10 月</span></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-note">
+      <span>预算为估算口径，实际以当地淡旺季价格为准。</span>
+      <span>Weekend Atlas ✦ 第一轮 · 首页与目的地</span>
+    </div>
+  </div>
+</footer>
+
+<script src="data/destinations.js"></script>
+<script src="data/posters.js"></script>
+<script src="scripts/main.js"></script>
+<script src="scripts/posters.js"></script>
+</body>
+</html>

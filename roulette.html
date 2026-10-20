@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>周末转盘 · 抽一个就走</title>
+<meta name="description" content="80 座城市摆成一个转盘。选好想去的类型和预算，转起来，指针停在哪座这周末就去哪座。">
+<link rel="stylesheet" href="styles/main.css">
+<link rel="stylesheet" href="styles/roulette.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23a8331f'/%3E%3Ctext x='16' y='23' font-family='serif' font-size='19' fill='%23fbf7f0' text-anchor='middle'%3E周%3C/text%3E%3C/svg%3E">
+</head>
+<body class="is-roulette">
+
+<header class="site-header" id="siteHeader">
+  <div class="wrap">
+    <a class="brand" href="index.html">
+      <span class="seal">周</span>
+      <span>周末去哪</span>
+      <span class="en">Weekend Atlas</span>
+    </a>
+    <nav class="nav">
+      <a href="index.html#explore">目的地</a>
+      <a href="map.html">地图</a>
+      <a href="roulette.html" aria-current="page">转盘</a>
+      <a href="index.html#reach">出行半径</a>
+    </nav>
+    <a class="header-cta" href="index.html#explore">
+      <span>回到全部</span>
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+        <path d="M14 8H3M7 4L3 8l4 4" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </a>
+  </div>
+</header>
+
+<main class="roulette-page">
+  <div class="wrap">
+
+    <div class="roulette-intro">
+      <span class="eyebrow">周末转盘</span>
+      <h1>既然选不出来，<em>就交给运气</em></h1>
+      <p class="lede">
+        80 座城市摆成一个圆盘，每格一个。先框定想去哪一类、能花多少钱，
+        剩下的交给指针——它停在哪座，这周末就去哪座。
+      </p>
+    </div>
+
+    <!-- ================= 筛选 ================= -->
+    <section class="rl-filters" aria-label="抽取条件">
+      <div class="rl-filter">
+        <span class="rl-filter-label">想去哪一类</span>
+        <div class="filters rl-chips" id="rlThemes" role="group" aria-label="按主题筛选转盘"></div>
+      </div>
+
+      <div class="rl-filter">
+        <span class="rl-filter-label">人均预算上限</span>
+        <div class="filters rl-chips" id="rlBudgets" role="group" aria-label="按预算筛选转盘"></div>
+        <p class="rl-hint">预算是人均口径，含住宿、吃饭和门票，不含大交通。</p>
+      </div>
+    </section>
+
+    <p class="rl-pool" id="rlPool" aria-live="polite"></p>
+
+    <!-- ================= 转盘 ================= -->
+    <section class="rl-stage" aria-label="转盘">
+      <div class="wheel-holder" id="wheelHolder">
+        <div class="wheel-needle" id="wheelNeedle" aria-hidden="true">
+          <svg viewBox="0 0 30 40" fill="none" aria-hidden="true">
+            <path d="M15 39 3.4 12.4A12 12 0 1 1 26.6 12.4Z"
+                  fill="var(--seal)" stroke="var(--paper)" stroke-width="2.5" stroke-linejoin="round"/>
+            <circle cx="15" cy="15.4" r="4.1" fill="var(--paper)"/>
+          </svg>
+        </div>
+
+        <div class="wheel-disc" id="wheelDisc">
+          <canvas id="wheelCanvas" role="img" aria-labelledby="wheelA11y"></canvas>
+          <button class="wheel-hub" type="button" id="wheelHub" aria-label="转动转盘">
+            <span class="hub-cn" id="hubCn">转</span>
+            <span class="hub-en">SPIN</span>
+          </button>
+        </div>
+
+        <p class="sr-only" id="wheelA11y">一个分成若干扇区的转盘。按空格键或回车键开始转动。</p>
+      </div>
+
+      <div class="rl-controls">
+        <button class="btn btn-primary rl-spin" type="button" id="spinBtn">
+          转
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+            <path d="M2 8h11M9 4l4 4-4 4" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div class="rl-modes" role="group" aria-label="抽取规则">
+          <button type="button" data-mode="fair" aria-pressed="true">
+            不重复
+            <span>抽过的先退场，直到一圈走完</span>
+          </button>
+          <button type="button" data-mode="pure" aria-pressed="false">
+            纯随机
+            <span>每次都从全部里抽，可能连着撞同一座</span>
+          </button>
+        </div>
+        <p class="rl-progress" id="rlProgress"></p>
+      </div>
+    </section>
+
+    <!-- ================= 结果 ================= -->
+    <section class="rl-result" id="rlResult" aria-live="polite">
+      <div class="rl-result-empty" id="rlEmpty">
+        <span class="rl-empty-mark" aria-hidden="true">✦</span>
+        <p>还没转过。按下中间的「转」，让指针替你决定。</p>
+      </div>
+
+      <article class="rl-card" id="rlCard" hidden>
+        <div class="rl-card-cover">
+          <img id="rlCover" alt="" decoding="async" width="1200" height="750">
+          <span class="rl-card-badge" id="rlBadge">抽中了</span>
+        </div>
+        <div class="rl-card-body">
+          <span class="rl-card-eyebrow" id="rlKicker">这周末去</span>
+          <div class="rl-card-title">
+            <h2 id="rlCity">—</h2>
+            <span class="rl-card-region" id="rlRegion"></span>
+          </div>
+          <p class="rl-card-tagline" id="rlTagline"></p>
+          <div class="rl-card-tags" id="rlTags"></div>
+
+          <dl class="rl-card-meta">
+            <div><dt>天数</dt><dd id="rlDays">—</dd></div>
+            <div><dt>人均</dt><dd id="rlBudget">—</dd></div>
+            <div><dt>最佳</dt><dd id="rlBest">—</dd></div>
+          </dl>
+
+          <p class="rl-card-line"><b>必去</b><span id="rlMustSee">—</span></p>
+          <p class="rl-card-line"><b>吃什么</b><span id="rlEat">—</span></p>
+          <p class="rl-card-line"><b>怎么去</b><span id="rlTransit">—</span></p>
+
+          <div class="rl-card-actions">
+            <a class="btn btn-primary" id="rlDetail" href="#">
+              看这趟的完整方案
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+                <path d="M2 8h11M9 4l4 4-4 4" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+            <button class="btn btn-ghost" type="button" id="rlAgain">再来一次</button>
+            <a class="btn btn-ghost" id="rlMap" href="map.html">在地图上看全貌</a>
+          </div>
+        </div>
+      </article>
+    </section>
+
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-note">
+      <span>预算为估算口径，实际以当地淡旺季价格为准。</span>
+      <span>Weekend Atlas ✦ 周末转盘</span>
+    </div>
+  </div>
+</footer>
+
+<script src="data/destinations.js"></script>
+<script src="scripts/roulette.js"></script>
+</body>
+</html>

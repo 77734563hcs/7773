@@ -1,0 +1,1211 @@
+/* ==========================================================================
+   目的地分布页 —— 复用 main.css 的 token
+   结构：左地图 / 右清单，宽屏并排，窄屏地图在上、清单做成底部抽屉
+   ========================================================================== */
+
+body.is-map {
+  background: var(--paper);
+}
+
+/* ==========================================================================
+   1. 页头说明
+   ========================================================================== */
+.map-page {
+  padding-bottom: var(--gap-7);
+}
+
+.map-intro {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: var(--gap-2) var(--gap-6);
+  padding-top: clamp(1.75rem, 4vw, 3rem);
+  padding-bottom: var(--gap-5);
+}
+
+.map-intro .eyebrow {
+  grid-column: 1 / -1;
+}
+
+.map-intro h1 {
+  font-family: var(--serif);
+  font-size: clamp(1.5rem, 3vw, 2.5rem);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  margin: 0;
+  text-wrap: balance;
+}
+
+.map-intro-note {
+  margin: 0;
+  max-width: 30ch;
+  font-size: 0.875rem;
+  line-height: 1.7;
+  color: var(--ink-3);
+  text-align: right;
+}
+
+.map-intro-hint {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.75rem;
+  color: var(--ink-4);
+}
+
+/* ==========================================================================
+   2. 舞台：左地图 / 右清单
+   ========================================================================== */
+.map-stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 21rem;
+  gap: var(--gap-5);
+  align-items: start;
+}
+
+/* ==========================================================================
+   3. 地图
+   ========================================================================== */
+.map-panel {
+  min-width: 0;
+}
+
+.map-canvas {
+  position: relative;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius);
+  background: var(--paper-2);
+  overflow: hidden;
+  /* 拖动时别让浏览器自己接管滚动 */
+  overscroll-behavior: contain;
+}
+
+.map-canvas.is-dragging {
+  cursor: grabbing;
+}
+
+.map-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 900 / 680;
+  touch-action: pan-y;
+  cursor: grab;
+  /* 缩放和位移都靠 transform，让合成器去算 */
+  will-change: transform;
+  transition: transform 0.32s var(--ease-out-quart);
+}
+
+.map-svg.is-zoomed {
+  cursor: move;
+  touch-action: none;
+}
+
+.map-canvas.is-dragging .map-svg {
+  transition: none;
+}
+
+/* ---------- 海面与陆地 ---------- */
+
+.map-sea {
+  fill: oklch(94% 0.014 220);
+}
+
+/* 斜线纹理：只靠一层 pattern 上色，透明度压到很低，避免抢戏 */
+.map-seahat {
+  fill: url(#seaHatch);
+  color: oklch(72% 0.03 220);
+  opacity: 0.32;
+  pointer-events: none;
+}
+
+.map-province {
+  fill: oklch(97.2% 0.009 76);
+  stroke: oklch(74% 0.02 68);
+  stroke-width: 0.75;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+/* ---------- 标记 ---------- */
+
+.map-marks {
+  /* 标记本身要接事件，底色不用 */
+  pointer-events: auto;
+}
+
+.mark {
+  cursor: pointer;
+  outline: none;
+}
+
+.mark-halo {
+  fill: var(--seal);
+  opacity: 0;
+  transition: opacity 0.25s var(--ease-out-quart),
+    r 0.25s var(--ease-out-quart);
+}
+
+.mark-dot {
+  fill: var(--seal);
+  stroke: var(--paper);
+  stroke-width: 1.6;
+  filter: url(#markerShadow);
+  transition: r 0.25s var(--ease-out-quart), fill 0.2s;
+}
+
+.mark-label {
+  font-family: var(--sans);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  fill: var(--ink);
+  paint-order: stroke;
+  stroke: oklch(97.2% 0.009 76 / 0.92);
+  stroke-width: 2.6;
+  stroke-linejoin: round;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ---------- 标签分档 ---------- */
+
+/**
+ * 挤不下而「让位」的标签：平时不画，只留圆点。
+ *
+ * 80 座城铺在 900×680 的画布上，窄屏又只有 412px 宽，
+ * 每个名字都要显出来是不可能的——硬塞的结果是整片糊成一团，
+ * 一个都读不出来。所以让一部分名字退场，靠三条路径补回来：
+ * 悬停、键盘聚焦、从清单选中。三者都会给它挂上 .is-loud。
+ */
+.mark-label.is-quiet {
+  opacity: 0;
+  transition: opacity 0.16s var(--ease-out-quart);
+}
+
+.mark-label.is-quiet.is-loud,
+.mark.is-loud .mark-label.is-quiet {
+  opacity: 1;
+}
+
+/* 悬停 / 键盘聚焦：同一种反馈，别做两套 */
+.mark:hover .mark-halo,
+.mark.is-hover .mark-halo,
+.mark:focus-visible .mark-halo {
+  opacity: 0.16;
+}
+
+.mark:hover .mark-dot,
+.mark.is-hover .mark-dot,
+.mark:focus-visible .mark-dot {
+  fill: var(--seal-deep);
+}
+
+.mark:hover .mark-halo,
+.mark.is-hover .mark-halo,
+.mark:focus-visible .mark-halo {
+  r: 16;
+}
+
+.mark:hover .mark-label,
+.mark.is-hover .mark-label {
+  font-weight: 700;
+  fill: var(--seal-deep);
+}
+
+.mark:focus-visible .mark-dot {
+  stroke: var(--ink);
+  stroke-width: 2.4;
+}
+
+/* 已选中：外圈实心描边，和悬停区分开 */
+.mark.is-active .mark-halo {
+  opacity: 1;
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.4;
+  r: 12;
+  stroke-dasharray: 2.5 2.5;
+}
+
+/* 散开后的小标记不该再顶同一套阴影，会糊成一团 */
+.mark.is-grouped .mark-dot {
+  r: 4.6;
+  filter: none;
+}
+
+.mark.is-grouped .mark-label {
+  font-size: 8.5px;
+}
+
+/* ---------- 聚合点 ---------- */
+
+.mark-cluster {
+  cursor: zoom-in;
+}
+
+.cluster-halo {
+  fill: var(--seal);
+  opacity: 0;
+  transition: opacity 0.25s var(--ease-out-quart);
+}
+
+.cluster-dot {
+  fill: var(--paper);
+  stroke: var(--seal);
+  stroke-width: 1.5;
+  filter: url(#markerShadow);
+}
+
+.cluster-n {
+  font-family: var(--sans);
+  font-size: 10px;
+  font-weight: 700;
+  fill: var(--seal);
+  pointer-events: none;
+  user-select: none;
+}
+
+.mark-cluster:hover .cluster-halo,
+.mark-cluster.is-hover .cluster-halo,
+.mark-cluster:focus-visible .cluster-halo {
+  opacity: 0.18;
+  r: 20;
+}
+
+.mark-cluster:hover .cluster-dot,
+.mark-cluster.is-hover .cluster-dot {
+  fill: var(--seal);
+}
+
+.mark-cluster:hover .cluster-n,
+.mark-cluster.is-hover .cluster-n {
+  fill: var(--paper);
+}
+
+/* ---------- 南海小窗 ---------- */
+
+.map-inset {
+  position: absolute;
+  right: 0.7rem;
+  bottom: 2.4rem;
+  margin: 0;
+  width: clamp(4.6rem, 11%, 6.4rem);
+  padding: 0.3rem 0.3rem 0.15rem;
+  /* 半透明白底，避免小窗飘在海面纹理上看不清 */
+  background: color-mix(in oklab, var(--paper) 84%, transparent);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  backdrop-filter: blur(2px);
+  pointer-events: none;
+}
+
+.map-inset svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.map-inset figcaption {
+  margin-top: 0.1rem;
+  font-size: 0.5625rem;
+  line-height: 1.3;
+  letter-spacing: 0.04em;
+  text-align: center;
+  color: var(--ink-3);
+}
+
+.inset-hainan {
+  fill: oklch(97.2% 0.009 76);
+  stroke: oklch(70% 0.02 68);
+  stroke-width: 0.8;
+  stroke-linejoin: round;
+}
+
+.inset-jd {
+  fill: var(--ink-2);
+  stroke: var(--ink-2);
+  stroke-width: 0.7;
+  stroke-linejoin: round;
+}
+
+/* ---------- 缩放控件 ---------- */
+
+.map-zoom {
+  position: absolute;
+  left: 0.7rem;
+  top: 0.7rem;
+  display: flex;
+  flex-direction: column;
+  background: color-mix(in oklab, var(--paper) 92%, transparent);
+  border: 1px solid var(--rule-strong);
+  border-radius: 2px;
+  overflow: hidden;
+  backdrop-filter: blur(6px);
+  box-shadow: var(--shadow-lift);
+}
+
+.map-zoom button {
+  width: 1.9rem;
+  height: 1.9rem;
+  display: grid;
+  place-items: center;
+  font-family: var(--sans);
+  font-size: 0.95rem;
+  line-height: 1;
+  color: var(--ink-2);
+  transition: background 0.2s, color 0.2s;
+}
+
+.map-zoom button + button {
+  border-top: 1px solid var(--rule);
+}
+
+.map-zoom button:hover {
+  background: var(--paper-3);
+  color: var(--ink);
+}
+
+.map-zoom button:active {
+  background: var(--seal);
+  color: var(--paper);
+}
+
+/* ---------- 图例 ---------- */
+
+.map-legend {
+  position: absolute;
+  left: 0.7rem;
+  bottom: 2.4rem;
+  display: flex;
+  gap: 0.9rem;
+  font-size: 0.6875rem;
+  color: var(--ink-3);
+  pointer-events: none;
+}
+
+.lg-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.lg-dot {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: var(--seal);
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--paper) 85%, transparent);
+}
+
+.lg-dot.is-active {
+  background: none;
+  border: 1px dashed var(--ink);
+  width: 0.55rem;
+  height: 0.55rem;
+}
+
+/* ---------- 悬停小卡 ---------- */
+
+.map-tip {
+  position: absolute;
+  z-index: 6;
+  /* 默认摆在标记上方居中 */
+  transform: translate(-50%, calc(-100% - 16px));
+  min-width: 7rem;
+  max-width: 13rem;
+  padding: 0.5rem 0.65rem;
+  background: oklch(21% 0.022 60 / 0.95);
+  color: var(--paper);
+  border-radius: 2px;
+  pointer-events: none;
+  box-shadow: 0 10px 24px -12px oklch(21% 0.022 60 / 0.6);
+}
+
+.map-tip.flip-x {
+  transform: translate(calc(-100% + 1.5rem), calc(-100% - 16px));
+}
+
+.map-tip.flip-y {
+  transform: translate(-50%, 16px);
+}
+
+.map-tip.flip-x.flip-y {
+  transform: translate(calc(-100% + 1.5rem), 16px);
+}
+
+.map-tip strong {
+  display: block;
+  font-family: var(--serif);
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.map-tip span {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.6875rem;
+  line-height: 1.5;
+  color: oklch(88% 0.01 80);
+}
+
+.map-tip em {
+  display: block;
+  margin-top: 0.3rem;
+  font-size: 0.625rem;
+  font-style: normal;
+  letter-spacing: 0.06em;
+  color: oklch(78% 0.09 40);
+}
+
+/* ---------- 底注 ---------- */
+
+.map-foot {
+  position: absolute;
+  right: 0.7rem;
+  bottom: 0.55rem;
+  margin: 0;
+  font-size: 0.625rem;
+  letter-spacing: 0.02em;
+  color: var(--ink-4);
+  pointer-events: none;
+}
+
+/* ==========================================================================
+   4. 清单
+   ========================================================================== */
+.map-list {
+  position: sticky;
+  /* 页头 4.25rem，留一点呼吸 */
+  top: 5rem;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 6.5rem);
+  min-height: 0;
+  background: var(--paper);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.list-head {
+  flex: none;
+  border-bottom: 1px solid var(--rule);
+  background: var(--paper-2);
+}
+
+/* 桌面端不显示把手 */
+.list-grip {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-3);
+  width: 100%;
+  padding: var(--gap-4) var(--gap-4) var(--gap-3);
+  text-align: left;
+  cursor: default;
+}
+
+.grip-bar {
+  display: none;
+}
+
+.list-title {
+  font-family: var(--serif);
+  font-size: 1.0625rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.list-count {
+  margin-left: auto;
+  min-width: 1.55rem;
+  padding: 0.05rem 0.4rem;
+  font-family: var(--latin);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: center;
+  color: var(--seal-deep);
+  background: color-mix(in oklab, var(--seal) 12%, transparent);
+  border-radius: 999px;
+}
+
+/* ---------- 搜索 ---------- */
+
+.list-tools {
+  padding: 0 var(--gap-4) var(--gap-3);
+}
+
+.list-search {
+  margin: 0;
+}
+
+.list-search-field {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0 0.55rem;
+  height: 2.15rem;
+  background: var(--paper);
+  border: 1px solid var(--rule-strong);
+  border-radius: 2px;
+  transition: border-color 0.25s var(--ease-out-quart),
+    box-shadow 0.25s var(--ease-out-quart);
+}
+
+.list-search-field:focus-within {
+  border-color: var(--seal);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--seal) 12%, transparent);
+}
+
+.list-search-field > svg {
+  flex: none;
+  width: 0.95rem;
+  height: 0.95rem;
+  color: var(--ink-4);
+}
+
+.list-search-field input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  font: inherit;
+  font-size: 0.8125rem;
+  color: var(--ink);
+  background: none;
+  border: 0;
+  outline: none;
+  appearance: none;
+}
+
+.list-search-field input::placeholder {
+  color: var(--ink-4);
+}
+
+/* 去掉 WebKit 自带的清除叉，用我们自己的 */
+.list-search-field input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.list-clear {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 50%;
+  color: var(--ink-3);
+  transition: background 0.2s, color 0.2s;
+}
+
+.list-clear svg {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+.list-clear:hover {
+  background: var(--paper-3);
+  color: var(--ink);
+}
+
+/* ---------- 主题筛选 ---------- */
+
+.list-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.28rem 0.25rem;
+  margin-top: 0.5rem;
+}
+
+.list-chip {
+  /* 7 个标签要挤进 21rem 的窄栏，字号和内边距都得收着点，
+     不然「远行」会被单独挤到第三行 */
+  padding: 0.15rem 0.42rem;
+  font-size: 0.71875rem;
+  line-height: 1.5;
+  color: var(--ink-2);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
+}
+
+.list-chip:hover {
+  border-color: var(--rule-strong);
+  color: var(--ink);
+}
+
+.list-chip[aria-pressed="true"] {
+  color: var(--paper);
+  background: var(--seal);
+  border-color: var(--seal);
+}
+
+/* ---------- 滚动区 ---------- */
+
+.list-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-bottom: var(--gap-3);
+  /* 顶部加一道渐隐，滚起来才知道下面还有 */
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 8px);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 8px);
+}
+
+.list-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.list-scroll::-webkit-scrollbar-thumb {
+  background: var(--rule-strong);
+  border-radius: 999px;
+  border: 2px solid var(--paper);
+}
+
+.list-group {
+  padding: var(--gap-3) 0 0;
+}
+
+.list-group + .list-group {
+  border-top: 1px solid var(--rule);
+  margin-top: var(--gap-3);
+}
+
+.list-group-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0 var(--gap-4) 0.35rem;
+  font-family: var(--sans);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.list-group-head span {
+  color: var(--ink-2);
+  font-weight: 700;
+}
+
+.list-group-head em {
+  font-style: normal;
+  font-size: 0.625rem;
+  letter-spacing: 0.02em;
+  color: var(--ink-4);
+}
+
+.list-group-head b {
+  margin-left: auto;
+  font-family: var(--latin);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--ink-4);
+}
+
+.list-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* ---------- 清单项 ---------- */
+
+.list-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "city meta go"
+    "tags tags go";
+  align-items: baseline;
+  gap: 0.1rem 0.5rem;
+  width: 100%;
+  padding: 0.5rem var(--gap-4);
+  text-align: left;
+  border-left: 2px solid transparent;
+  transition: background 0.2s var(--ease-out-quart),
+    border-color 0.2s var(--ease-out-quart);
+}
+
+.list-item:hover,
+.list-item.is-hover {
+  background: var(--paper-2);
+}
+
+.list-item.is-active {
+  background: color-mix(in oklab, var(--seal) 7%, var(--paper));
+  border-left-color: var(--seal);
+}
+
+.li-city {
+  grid-area: city;
+  font-family: var(--serif);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.li-meta {
+  grid-area: meta;
+  overflow: hidden;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--ink-3);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.li-tags {
+  grid-area: tags;
+  display: flex;
+  gap: 0.3rem;
+  overflow: hidden;
+}
+
+.li-tags i {
+  font-style: normal;
+  font-size: 0.6875rem;
+  line-height: 1.5;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+.li-tags i + i::before {
+  content: "/ ";
+  color: var(--rule-strong);
+}
+
+.li-go {
+  grid-area: go;
+  align-self: center;
+  width: 0.9rem;
+  height: 0.9rem;
+  color: var(--rule-strong);
+  transform: translateX(-2px);
+  opacity: 0;
+  transition: opacity 0.2s, transform 0.25s var(--ease-out-expo),
+    color 0.2s;
+}
+
+.list-item:hover .li-go,
+.list-item.is-hover .li-go,
+.list-item.is-active .li-go,
+.list-item:focus-visible .li-go {
+  opacity: 1;
+  transform: none;
+  color: var(--seal);
+}
+
+/* ---------- 空状态 ---------- */
+
+.list-empty {
+  margin: 0;
+  padding: var(--gap-6) var(--gap-4);
+  font-size: 0.8125rem;
+  line-height: 1.8;
+  text-align: center;
+  color: var(--ink-3);
+}
+
+.link-btn {
+  padding: 0;
+  font: inherit;
+  color: var(--seal);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  text-decoration-thickness: 1px;
+}
+
+.link-btn:hover {
+  color: var(--seal-deep);
+}
+
+.list-foot {
+  flex: none;
+  margin: 0;
+  padding: 0.55rem var(--gap-4);
+  font-size: 0.6875rem;
+  line-height: 1.5;
+  color: var(--ink-4);
+  border-top: 1px solid var(--rule);
+  background: var(--paper-2);
+}
+
+/* ==========================================================================
+   5. 中等宽度：清单收窄，别再抢地图的地方
+   ========================================================================== */
+@media (max-width: 1180px) and (min-width: 901px) {
+  .map-stage {
+    grid-template-columns: minmax(0, 1fr) 17.5rem;
+    gap: var(--gap-4);
+  }
+
+  .list-item {
+    padding-inline: var(--gap-3);
+  }
+
+  .list-group-head,
+  .list-foot {
+    padding-inline: var(--gap-3);
+  }
+
+  .list-tools {
+    padding-inline: var(--gap-3);
+  }
+}
+
+/* ==========================================================================
+   6. 窄屏：地图全宽，清单变底部抽屉
+   ========================================================================== */
+@media (max-width: 900px) {
+  .map-page {
+    padding-bottom: 0;
+  }
+
+  /* 抽屉是 fixed 的。页脚留着的话会占掉一整段文档高度，
+     地图被顶到屏幕上方，收起态下面拖出一片空白——
+     窄屏干脆不排页脚，底注已经写在地图右下角了 */
+  body.is-map .site-footer {
+    display: none;
+  }
+
+  .map-intro {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--gap-1);
+    padding-top: var(--gap-4);
+    padding-bottom: var(--gap-3);
+  }
+
+  .map-intro h1 {
+    font-size: clamp(1.25rem, 5.2vw, 1.75rem);
+    line-height: 1.2;
+  }
+
+  .map-intro-note {
+    max-width: none;
+    text-align: left;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+  }
+
+  /* 说明收成一行，把高度让给地图 */
+  .map-intro-hint {
+    display: none;
+  }
+
+  .map-stage {
+    display: block;
+    padding-inline: 0;
+    --drawer-peek: 3.6rem;
+    /* 留出页头 + 一段地图，抽屉别把地图整个吃掉。
+       手机浏览器地址栏会吃掉一截 100vh，所以再用 dvh 兜一次底 */
+    --drawer-full: min(78vh, calc(100dvh - 11rem));
+  }
+
+  .map-panel {
+    /* wrap 的左右内边距在窄屏下留给地图，别浪费在留白上 */
+    padding-inline: max(0.5rem, calc(var(--page) * 0.3));
+  }
+
+  /* ---------- 地图在窄屏换个画幅 ---------- */
+  /* 竖屏手机的可用区是 3:4 的，而 900×680 的横版画布塞进去只占中间
+     一条，上下两条全是海面。map.js 在窄屏会把 viewBox 换成 675×900
+     并改用 NARROW 视窗，所以这里只要把画布撑满，图形自然填满，
+     不再需要靠放大倍率去挤 */
+  .map-canvas {
+    /* 画布高度 = 屏高 − 页头 69 − 标题区 101 − peek 条 58，
+       加上一点余量，刚好落满首屏：地图下沿顶在抽屉上，中间不空一条。
+       画布保持 3:4 时高度就是「宽 × 4/3」，所以这里不再另设上限——
+       缩小时 preserveAspectRatio=meet 会自动居中留白，
+       但宽度已经铺满，留白只剩几十像素 */
+    --map-h: calc(100dvh - 14.4rem);
+    height: max(17rem, var(--map-h));
+    /* 手机上地图靠拖动看，别让整页跟着滚 */
+    touch-action: none;
+  }
+
+  .map-svg {
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    aspect-ratio: auto;
+    margin: 0;
+  }
+
+  /* viewBox 675 被压进 ~412px（约 0.61 倍），字号和描边会一起缩。
+     让标签字号直接按屏幕像素算，别跟着缩放链走 */
+  .map-svg .mark-label {
+    font-size: 11px;
+  }
+
+  .map-svg .cluster-n {
+    font-size: 11px;
+  }
+
+  /* 省份边界和圆点描边不随缩放变粗变细 */
+  .map-svg .map-province,
+  .map-svg .mark-dot,
+  .map-svg .cluster-dot {
+    vector-effect: non-scaling-stroke;
+  }
+
+  .map-svg .mark-dot {
+    stroke-width: 1.2px;
+  }
+
+  /* 手机上没有鼠标，滚轮和双指缩放都能做，按钮纯占地方 */
+  .map-zoom {
+    display: none;
+  }
+
+  .map-legend {
+    /* 图例固定在地图下沿那段海面上：--band-bottom 是 map.js
+       量出来的「地图包围盒到画布底」的距离 */
+    bottom: calc(var(--band-bottom, 7.5rem) + 0.4rem);
+    font-size: 0.625rem;
+  }
+
+  /* 底注贴着画布底，跟图例一起落在留白带里，不压地图正文 */
+  .map-foot {
+    right: 0.6rem;
+    bottom: 0.3rem;
+    max-width: 58%;
+    font-size: 0.5625rem;
+    line-height: 1.4;
+    text-align: right;
+  }
+
+  /* 小窗站在留白带里，右下角对齐 */
+  .map-inset {
+    right: 0.5rem;
+    bottom: calc(var(--band-bottom, 7.5rem) + 0.2rem);
+    width: 3.2rem;
+    padding: 0.15rem 0.15rem 0.1rem;
+  }
+
+  .map-inset figcaption {
+    font-size: 0.5rem;
+  }
+
+  .map-inset figcaption {
+    font-size: 0.5rem;
+  }
+
+  .map-inset figcaption {
+    font-size: 0.5rem;
+  }
+
+  .map-zoom {
+    left: 0.5rem;
+    top: 0.5rem;
+  }
+
+  .map-zoom button {
+    width: 2.15rem;
+    height: 2.15rem;
+    /* 手指按得准一点 */
+    font-size: 1.05rem;
+  }
+
+  /* ---------- 抽屉 ---------- */
+
+  .map-list {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 40;
+    top: auto;
+    max-height: var(--drawer-full);
+    height: var(--drawer-full);
+    border: 0;
+    border-top: 1px solid var(--rule-strong);
+    border-radius: 12px 12px 0 0;
+    box-shadow: 0 -14px 40px -22px oklch(25% 0.03 60 / 0.45);
+    /* 收起时只露出头，向上平移剩下的部分 */
+    transform: translateY(calc(100% - var(--drawer-peek)));
+    transition: transform 0.42s var(--ease-out-expo);
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  .map-list[data-open="true"] {
+    transform: none;
+  }
+
+  /* 滚过地图后 peek 条滑下去，别挡着页面最后几行 */
+  .map-list.is-peek-away:not([data-open="true"]) {
+    transform: translateY(100%);
+  }
+
+  /* 展开时用纸色薄雾盖住上半屏：比纯黑遮罩更贴杂志感，
+     也让人一眼看出下面这层是不可点的地图 */
+  .map-list::before {
+    content: "";
+    position: fixed;
+    inset: 0 0 calc(var(--drawer-full) - var(--drawer-peek));
+    z-index: -1;
+    background: color-mix(in oklab, var(--paper) 62%, transparent);
+    backdrop-filter: blur(2px) saturate(0.85);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s var(--ease-out-quart);
+  }
+
+  .map-list[data-open="true"]::before {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .list-head {
+    /* 头部圆角跟着抽屉走 */
+    border-radius: 12px 12px 0 0;
+  }
+
+  .list-grip {
+    flex-wrap: wrap;
+    padding: 0.5rem var(--gap-4) 0.15rem;
+    cursor: pointer;
+    /* 上下滑的时候别让浏览器当成页面滚动 */
+    touch-action: pan-x;
+  }
+
+  .grip-bar {
+    display: block;
+    flex: 0 0 100%;
+    width: 2.25rem;
+    height: 4px;
+    margin: 0 auto 0.45rem;
+    background: var(--rule-strong);
+    border-radius: 999px;
+    transition: background 0.25s;
+  }
+
+  .list-grip:active .grip-bar {
+    background: var(--ink-3);
+  }
+
+  /* 收起状态：只留「目的地清单 N」这一条，工具区收掉 */
+  .map-list:not([data-open="true"]) .list-tools {
+    display: none;
+  }
+
+  .map-list:not([data-open="true"]) .list-grip {
+    padding-bottom: 0.6rem;
+  }
+
+  .list-tools {
+    padding: 0 var(--gap-4) var(--gap-3);
+  }
+
+  .list-search-field {
+    height: 2.5rem;
+    /* iOS 上字号低于 16px 会触发聚焦缩放 */
+    font-size: 16px;
+  }
+
+  .list-search-field input {
+    font-size: 16px;
+  }
+
+  .list-chip {
+    padding: 0.32rem 0.65rem;
+    font-size: 0.8125rem;
+  }
+
+  .list-item {
+    padding: 0.65rem var(--gap-4);
+  }
+
+  .li-city {
+    font-size: 1rem;
+  }
+
+  .li-meta {
+    font-size: 0.8125rem;
+  }
+
+  .li-tags i {
+    font-size: 0.75rem;
+  }
+
+  /* 触摸设备没有 hover，箭头常显，否则全靠猜可点 */
+  .li-go {
+    opacity: 0.5;
+    transform: none;
+  }
+
+  .list-scroll {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+
+  /* 抽屉开着时，背后的页面不要跟着滚 */
+  body.is-map.is-drawer-open {
+    overflow: hidden;
+  }
+}
+
+@media (max-width: 420px) {
+  .map-stage {
+    --drawer-peek: 3.9rem;
+  }
+
+  .map-intro h1 {
+    font-size: 1.25rem;
+  }
+
+  .map-legend {
+    display: none;
+  }
+}
+
+/* ==========================================================================
+   7. 降低动效偏好
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  .map-svg,
+  .map-list,
+  .map-tip {
+    transition-duration: 0.01ms;
+  }
+}
+
+/* ==========================================================================
+   8. 打印：地图和清单都留着，去掉浮层
+   ========================================================================== */
+@media print {
+  .map-zoom,
+  .map-tip,
+  .map-list::before {
+    display: none;
+  }
+
+  .map-stage {
+    display: block;
+  }
+
+  .map-list {
+    position: static;
+    max-height: none;
+    height: auto;
+    transform: none;
+    margin-top: var(--gap-4);
+    box-shadow: none;
+  }
+
+  .map-list:not([data-open="true"]) .list-tools {
+    display: block;
+  }
+
+  .list-scroll {
+    overflow: visible;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+}

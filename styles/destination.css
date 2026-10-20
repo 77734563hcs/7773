@@ -1,0 +1,924 @@
+/* ==========================================================================
+   目的地详情页 —— 复用 main.css 的设计 token
+   结构：满幅封面首屏 → 左正文 / 右票据栏 → 相关推荐
+   ========================================================================== */
+
+body.is-detail {
+  background: var(--paper);
+}
+
+/* 页头浮在封面上：未滚动时透明+白字，滚动后回到常规纸张态 */
+body.is-detail .site-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: transparent;
+  backdrop-filter: none;
+  border-bottom-color: transparent;
+  color: oklch(97% 0.01 80);
+}
+
+body.is-detail .site-header .brand,
+body.is-detail .site-header .nav,
+body.is-detail .site-header .nav a {
+  color: inherit;
+}
+
+body.is-detail .site-header .nav a:hover {
+  color: #fff;
+}
+
+body.is-detail .site-header .brand .en {
+  color: oklch(88% 0.01 80 / 0.7);
+}
+
+body.is-detail .site-header .seal {
+  background: oklch(97% 0.01 80);
+  color: var(--seal-deep);
+}
+
+body.is-detail .site-header .header-cta {
+  border-color: oklch(100% 0 0 / 0.5);
+  color: inherit;
+  flex: none;
+}
+
+/* 页头被压窄时，「回到全部」会折成每字一行 —— 强制单行 */
+body.is-detail .site-header .header-cta span {
+  white-space: nowrap;
+}
+
+body.is-detail .site-header .header-cta:hover {
+  background: oklch(100% 0 0 / 0.95);
+  border-color: oklch(100% 0 0 / 0.95);
+  color: var(--ink);
+}
+
+body.is-detail .site-header[data-stuck="true"] {
+  background: color-mix(in oklab, var(--paper) 88%, transparent);
+  backdrop-filter: blur(14px) saturate(1.4);
+  border-bottom-color: var(--rule);
+  color: var(--ink);
+}
+
+body.is-detail .site-header[data-stuck="true"] .brand .en {
+  color: var(--ink-3);
+}
+
+body.is-detail .site-header[data-stuck="true"] .seal {
+  background: var(--seal);
+  color: oklch(98% 0.01 80);
+}
+
+body.is-detail .site-header[data-stuck="true"] .header-cta {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+body.is-detail .site-header[data-stuck="true"] .header-cta:hover {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+/* ---------- 加载 / 未找到 ---------- */
+.detail-loading {
+  padding-block: var(--gap-9);
+  color: var(--ink-3);
+  font-size: 0.9rem;
+}
+
+.notfound {
+  padding-block: var(--gap-9);
+  max-width: 34rem;
+}
+
+.notfound .eyebrow {
+  margin-bottom: var(--gap-3);
+}
+
+.notfound h1 {
+  font-family: var(--serif);
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  margin-bottom: var(--gap-4);
+}
+
+.notfound p {
+  color: var(--ink-2);
+  margin-bottom: var(--gap-6);
+}
+
+/* ---------- 首屏 ---------- */
+.d-hero {
+  position: relative;
+  isolation: isolate;
+  min-height: clamp(30rem, 62vh, 40rem);
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+  background: oklch(24% 0.02 60);
+}
+
+.d-hero-media {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+}
+
+.d-hero-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* 压暗 + 从主色染一层，让白色文字在任何照片上都成立 */
+.d-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(
+      to top,
+      oklch(15% 0.02 60 / 0.9) 0%,
+      oklch(15% 0.02 60 / 0.62) 38%,
+      oklch(15% 0.02 60 / 0.28) 70%,
+      oklch(15% 0.02 60 / 0.45) 100%
+    ),
+    linear-gradient(
+      100deg,
+      color-mix(in oklab, var(--a) 42%, transparent) 0%,
+      transparent 62%
+    );
+}
+
+.d-hero-inner {
+  width: 100%;
+  padding-block: 6.5rem var(--gap-7);
+  color: oklch(97% 0.01 80);
+}
+
+.d-crumb {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  color: oklch(85% 0.01 80 / 0.82);
+  margin-bottom: var(--gap-5);
+}
+
+.d-crumb a {
+  color: inherit;
+  border-bottom: 1px solid oklch(100% 0 0 / 0.28);
+  padding-bottom: 1px;
+  transition: color 0.25s, border-color 0.25s;
+}
+
+.d-crumb a:hover {
+  color: #fff;
+  border-color: #fff;
+}
+
+.d-crumb span[aria-current] {
+  color: #fff;
+}
+
+.d-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--gap-4);
+  margin-bottom: var(--gap-3);
+}
+
+.d-hero h1 {
+  font-family: var(--serif);
+  font-size: clamp(2.6rem, 8vw, 5.5rem);
+  font-weight: 900;
+  line-height: 0.98;
+  letter-spacing: -0.03em;
+}
+
+.d-no {
+  font-family: var(--latin);
+  font-size: clamp(0.9rem, 2vw, 1.15rem);
+  color: oklch(88% 0.02 80 / 0.6);
+  letter-spacing: 0.06em;
+}
+
+.d-tagline {
+  font-family: var(--serif);
+  font-size: clamp(1.05rem, 2.4vw, 1.45rem);
+  font-weight: 400;
+  line-height: 1.55;
+  max-width: 30ch;
+  color: oklch(96% 0.01 80 / 0.94);
+  margin-bottom: var(--gap-4);
+}
+
+.d-vibe {
+  display: inline-block;
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid oklch(100% 0 0 / 0.35);
+  border-radius: 999px;
+  color: oklch(95% 0.01 80 / 0.9);
+  margin-bottom: var(--gap-6);
+}
+
+/* 四格票据参数条 */
+.d-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 1px;
+  background: oklch(100% 0 0 / 0.2);
+  border: 1px solid oklch(100% 0 0 / 0.2);
+  border-radius: 2px;
+  overflow: hidden;
+  max-width: 46rem;
+  backdrop-filter: blur(2px);
+}
+
+.d-stats > div {
+  padding: 0.85rem 1rem;
+  background: oklch(18% 0.02 60 / 0.42);
+}
+
+.d-stats dt {
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  color: oklch(86% 0.01 80 / 0.72);
+  margin-bottom: 0.4rem;
+}
+
+.d-stats dd {
+  font-family: var(--latin);
+  font-size: 1.5rem;
+  line-height: 1.15;
+  font-weight: 500;
+  color: #fff;
+}
+
+.d-stats dd span {
+  font-size: 0.8rem;
+  font-family: var(--sans);
+  opacity: 0.7;
+  margin-left: 0.15em;
+}
+
+.d-stats dd.sm {
+  font-family: var(--sans);
+  font-size: 0.9rem;
+  font-weight: 400;
+  line-height: 1.45;
+  color: oklch(96% 0.01 80 / 0.95);
+}
+
+/* 第五格「几点去最对」独占一行，避免五格挤成 4+1 的尴尬 */
+.d-stats > div.wide {
+  grid-column: 1 / -1;
+  padding-block: 0.7rem 0.8rem;
+}
+
+.d-stats > div.wide dd.sm {
+  color: #fff;
+  font-size: 1rem;
+  letter-spacing: 0.01em;
+}
+
+/* ---------- 正文两栏 ---------- */
+.d-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 20rem;
+  gap: clamp(2rem, 5vw, 4.5rem);
+  padding-block: var(--gap-8) var(--gap-9);
+  align-items: start;
+}
+
+.d-sec + .d-sec {
+  margin-top: var(--gap-8);
+}
+
+.d-sec h2 {
+  display: flex;
+  align-items: baseline;
+  gap: 0.65rem;
+  font-family: var(--serif);
+  font-size: clamp(1.25rem, 2.4vw, 1.6rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: var(--gap-5);
+}
+
+.d-sec h2 .num {
+  display: inline-block;
+  flex: none;
+  font-family: var(--latin);
+  font-size: 0.8rem;
+  color: var(--seal);
+  letter-spacing: 0.06em;
+}
+
+/* 标题下的定性引子 */
+.d-known {
+  font-family: var(--serif);
+  font-size: clamp(1.02rem, 1.9vw, 1.18rem);
+  line-height: 1.9;
+  color: var(--ink-1);
+  border-left: 2px solid var(--seal);
+  padding-left: 1.1rem;
+  margin-bottom: var(--gap-7);
+  max-width: 46ch;
+}
+
+/* 必去 */
+.d-must {
+  display: grid;
+  gap: var(--gap-6);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.d-must li {
+  padding-bottom: var(--gap-6);
+  border-bottom: 1px dashed var(--rule-strong);
+}
+
+.d-must li:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.sp-head {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin-bottom: 0.7rem;
+}
+
+.d-must .dot {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--latin);
+  font-size: 0.8rem;
+}
+
+.d-must h3 {
+  font-family: var(--serif);
+  font-size: clamp(1.18rem, 2.2vw, 1.4rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.sp-what {
+  font-size: 0.925rem;
+  line-height: 1.85;
+  color: var(--ink-1);
+  max-width: 56ch;
+  margin-bottom: var(--gap-3);
+}
+
+/* 景点参数条：开放 / 票价 / 怎么进 */
+.sp-meta {
+  border-top: 1px solid var(--rule);
+  margin-bottom: var(--gap-3);
+}
+
+.sp-meta-row {
+  display: grid;
+  grid-template-columns: 4.2rem minmax(0, 1fr);
+  gap: 0.6rem;
+  padding-block: 0.5rem;
+  border-bottom: 1px solid var(--rule);
+  font-size: 0.8125rem;
+  line-height: 1.7;
+}
+
+.sp-meta-row dt {
+  color: var(--ink-4);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  padding-top: 0.15rem;
+}
+
+.sp-meta-row dd {
+  color: var(--ink-2);
+}
+
+.sp-tips {
+  font-size: 0.8125rem;
+  line-height: 1.8;
+  color: var(--ink-2);
+  background: var(--paper-2);
+  border-left: 2px solid var(--rule-strong);
+  padding: 0.7rem 0.9rem;
+  max-width: 56ch;
+}
+
+.sp-tips b {
+  display: inline-block;
+  font-weight: 400;
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  color: var(--seal);
+  margin-right: 0.6rem;
+}
+
+/* 行程 */
+.d-plan {
+  display: grid;
+  gap: var(--gap-6);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.d-plan li {
+  border-top: 2px solid var(--ink);
+  padding-top: 0.9rem;
+}
+
+.pl-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.3rem;
+}
+
+.pl-day {
+  font-family: var(--latin);
+  font-size: 0.82rem;
+  letter-spacing: 0.12em;
+  color: var(--seal);
+}
+
+.pl-n {
+  font-family: var(--latin);
+  font-size: 0.72rem;
+  color: var(--ink-4);
+  letter-spacing: 0.08em;
+}
+
+.pl-title {
+  font-family: var(--serif);
+  font-size: clamp(1.05rem, 2vw, 1.2rem);
+  font-weight: 700;
+  margin-bottom: 0.85rem;
+}
+
+.pl-stops {
+  display: grid;
+  gap: 0.15rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.pl-stops li {
+  display: grid;
+  grid-template-columns: 4rem minmax(0, 1fr);
+  gap: 0.8rem;
+  border-top: 0;
+  border-bottom: 1px solid var(--rule);
+  padding: 0.55rem 0;
+  align-items: start;
+}
+
+.pl-stops li:last-child {
+  border-bottom: 0;
+}
+
+.pl-stops .pt {
+  font-family: var(--latin);
+  font-size: 0.85rem;
+  color: var(--ink);
+  padding-top: 0.1rem;
+  letter-spacing: 0.02em;
+}
+
+.pl-stops .pw {
+  font-size: 0.875rem;
+  line-height: 1.75;
+  color: var(--ink-2);
+}
+
+.pl-note {
+  margin-top: 0.8rem;
+  font-size: 0.78rem;
+  line-height: 1.7;
+  color: var(--ink-3);
+  padding-left: 0.85rem;
+  border-left: 1px solid var(--rule-strong);
+  max-width: 54ch;
+}
+
+/* 吃什么 */
+.d-eatgroup + .d-eatgroup.sep {
+  margin-top: var(--gap-6);
+  padding-top: var(--gap-5);
+  border-top: 1px solid var(--rule);
+}
+
+.d-eatk {
+  font-family: var(--sans);
+  font-size: 0.72rem;
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  color: var(--seal);
+  margin-bottom: var(--gap-3);
+}
+
+.d-eatlist {
+  display: grid;
+  gap: 1px;
+  background: var(--rule);
+  border: 1px solid var(--rule);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.d-eatlist li {
+  background: var(--paper);
+  padding: 0.9rem 1rem 1rem;
+}
+
+.et-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.25rem;
+}
+
+.et-head h4 {
+  font-family: var(--serif);
+  font-size: 1.02rem;
+  font-weight: 700;
+}
+
+.et-price {
+  flex: none;
+  font-family: var(--latin);
+  font-size: 0.82rem;
+  color: var(--ink-2);
+  letter-spacing: 0.01em;
+}
+
+.et-shop {
+  font-size: 0.78rem;
+  line-height: 1.6;
+  color: var(--ink-2);
+  margin-bottom: 0.45rem;
+}
+
+.et-how {
+  font-size: 0.84rem;
+  line-height: 1.8;
+  color: var(--ink-1);
+  max-width: 58ch;
+}
+
+/* 兜底：没有详情数据时的纯文本吃什么 */
+.d-eat {
+  font-family: var(--serif);
+  font-size: clamp(1.15rem, 2.4vw, 1.5rem);
+  line-height: 1.85;
+  color: var(--ink);
+  max-width: 30ch;
+}
+
+/* 走之前确认 */
+.d-caution {
+  margin-top: var(--gap-8);
+  background: var(--paper-2);
+  border: 1px solid var(--rule-strong);
+  border-left: 3px solid var(--seal);
+  padding: 1.2rem 1.3rem 1.3rem;
+}
+
+.d-caution h3 {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  font-family: var(--serif);
+  font-size: 1.02rem;
+  font-weight: 700;
+  margin-bottom: 0.85rem;
+}
+
+.d-caution .num {
+  display: grid;
+  place-items: center;
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 999px;
+  background: var(--seal);
+  color: var(--paper);
+  font-family: var(--latin);
+  font-size: 0.7rem;
+  line-height: 1;
+}
+
+.d-caution ul {
+  display: grid;
+  gap: 0.5rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.d-caution li {
+  position: relative;
+  padding-left: 1rem;
+  font-size: 0.83rem;
+  line-height: 1.75;
+  color: var(--ink-1);
+}
+
+.d-caution li::before {
+  content: "";
+  position: absolute;
+  left: 0.1rem;
+  top: 0.68em;
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--ink-3);
+}
+
+/* 住在哪 */
+.d-stay {
+  font-size: 0.8125rem;
+  line-height: 1.8;
+  color: var(--ink-2);
+  margin-top: var(--gap-3);
+}
+
+/* ---------- 右栏票据卡 ---------- */
+.d-side {
+  position: sticky;
+  top: 6rem;
+  display: grid;
+  gap: var(--gap-4);
+}
+
+.d-card {
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--paper-2);
+  padding: 1.25rem 1.25rem 1.1rem;
+}
+
+.d-card h3 {
+  font-family: var(--serif);
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 0.3rem;
+}
+
+.d-card-sub {
+  font-size: 0.75rem;
+  color: var(--ink-3);
+  margin-bottom: var(--gap-4);
+  padding-bottom: 0.7rem;
+  border-bottom: 1px dashed var(--rule-strong);
+}
+
+.d-budget {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.d-budget li {
+  display: grid;
+  grid-template-columns: 2.6rem minmax(0, 1fr) 3.2rem;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  padding-block: 0.42rem;
+}
+
+.d-budget .k {
+  color: var(--ink-2);
+}
+
+.d-budget .bar {
+  height: 4px;
+  background: var(--paper-3);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.d-budget .bar i {
+  display: block;
+  height: 100%;
+  background: var(--seal);
+  border-radius: 999px;
+}
+
+.d-budget .v {
+  font-family: var(--latin);
+  font-size: 0.9rem;
+  text-align: right;
+  color: var(--ink);
+}
+
+.d-budget .note {
+  grid-column: 2 / 4;
+  font-size: 0.7rem;
+  color: var(--ink-4);
+  margin-top: -0.2rem;
+}
+
+.d-fine {
+  margin-top: var(--gap-4);
+  padding-top: 0.7rem;
+  border-top: 1px dashed var(--rule-strong);
+  font-size: 0.72rem;
+  line-height: 1.65;
+  color: var(--ink-4);
+}
+
+.d-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: var(--gap-3);
+}
+
+.d-tags .tag {
+  border: 1px solid var(--rule-strong);
+  border-radius: 999px;
+  padding: 0.28rem 0.72rem;
+  font-size: 0.75rem;
+  color: var(--ink-2);
+  transition: all 0.25s var(--ease-out-quart);
+}
+
+.d-tags .tag:hover {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+
+/* ---------- 相关推荐 ---------- */
+.d-rel {
+  border-top: 1px solid var(--rule);
+  padding-block: var(--gap-8) var(--gap-8);
+  background: var(--paper-2);
+}
+
+.rel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: clamp(1rem, 2vw, 1.6rem);
+}
+
+.rel-card {
+  display: block;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--paper);
+  overflow: hidden;
+  transition: transform 0.5s var(--ease-out-expo),
+    box-shadow 0.5s var(--ease-out-expo), border-color 0.35s;
+}
+
+.rel-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--rule-strong);
+  box-shadow: var(--shadow-lift);
+}
+
+.rel-cover {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: var(--paper-3);
+  overflow: hidden;
+}
+
+.rel-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.9s var(--ease-out-expo);
+}
+
+.rel-card:hover .rel-cover img {
+  transform: scale(1.04);
+}
+
+.rel-cover::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(transparent 55%, oklch(15% 0.02 60 / 0.62));
+}
+
+.rel-city {
+  position: absolute;
+  left: 0.9rem;
+  bottom: 0.7rem;
+  z-index: 1;
+  font-family: var(--serif);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.01em;
+}
+
+.rel-body {
+  padding: 0.85rem 1rem 1rem;
+}
+
+.rel-body p {
+  font-size: 0.85rem;
+  color: var(--ink-2);
+  line-height: 1.6;
+  min-height: 2.6em;
+}
+
+.rel-meta {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+  border-top: 1px dashed var(--rule);
+  font-family: var(--latin);
+  font-size: 0.8rem;
+  color: var(--ink-3);
+}
+
+/* ---------- 响应式 ---------- */
+@media (max-width: 980px) {
+  .d-body {
+    grid-template-columns: 1fr;
+  }
+
+  .d-side {
+    position: static;
+    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .d-hero {
+    min-height: 88vh;
+  }
+
+  .d-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .d-stats > div.wide {
+    grid-column: 1 / -1;
+    padding-block: 0.65rem;
+  }
+
+  .d-stats > div.wide dd.sm {
+    font-size: 0.9rem;
+  }
+
+  .pl-stops li {
+    grid-template-columns: 3.6rem minmax(0, 1fr);
+    gap: 0.6rem;
+  }
+
+  .sp-meta-row {
+    grid-template-columns: 3.6rem minmax(0, 1fr);
+    gap: 0.5rem;
+  }
+
+  .et-head {
+    flex-wrap: wrap;
+    gap: 0.15rem 0.8rem;
+  }
+
+  .rel-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rel-card,
+  .rel-cover img {
+    transition: none;
+  }
+}
